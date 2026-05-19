@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#107c41">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="IRP 100세">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23107c41'/%3E%3Ctext x='50' y='68' font-size='44' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EIRP%3C/text%3E%3C/svg%3E">
+<title>IRP 100세 현금흐름 마스터플래너</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+  body { font-family:"Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,sans-serif; background:#f3f2f1; margin:0; padding:0; overflow:hidden; }
+  ::-webkit-scrollbar { width:14px; height:14px; }
+  ::-webkit-scrollbar-track { background:#f1f1f1; border-left:1px solid #d2d2d2; border-top:1px solid #d2d2d2; }
+  ::-webkit-scrollbar-thumb { background:#c1c1c1; border:1px solid #f1f1f1; }
+  ::-webkit-scrollbar-thumb:hover { background:#a8a8a8; }
+  .up-color { color:#d10000; }
+  .down-color { color:#0054ff; }
+  .excel-table { border-collapse:collapse; width:100%; font-size:12px; background:#fff; }
+  .excel-table th, .excel-table td { border:1px solid #d2d2d2; padding:5px 8px; height:24px; }
+  .excel-table th { background:#f3f2f1; font-weight:bold; color:#333; text-align:center; border-bottom:2px solid #c6c6c6; }
+  .excel-table tbody tr:hover { background:#e5f1fb; }
+  .excel-header-bar { background:#107c41; color:#fff; }
+  .sheet-tabs-container { background:#f3f2f1; display:flex; overflow-x:auto; border-top:1px solid #c6c6c6; }
+  .sheet-tab { padding:6px 16px; font-size:12px; color:#333; cursor:pointer; border-right:1px solid #c6c6c6; border-top:2px solid transparent; background:#e1dfdd; white-space:nowrap; }
+  .sheet-tab:hover { background:#fff; }
+  .sheet-tab.active { background:#fff; font-weight:bold; color:#107c41; border-top:2px solid #107c41; border-bottom:1px solid #fff; position:relative; top:1px; }
+  .modal-input { width:100%; border:1px solid #c6c6c6; padding:6px 8px; font-size:13px; outline:none; }
+  .modal-input:focus { border-color:#107c41; box-shadow:0 0 0 2px rgba(16,124,65,0.15); }
+  .phase-golden { background:#fff7e6; }
+  .phase-golden-plus { background:#dbeafe; }
+  .phase-transition { background:#fef9c3; }
+  .phase-growth { background:#d1fae5; }
+  .stat-card { border:1px solid #d2d2d2; padding:14px; background:#fafafa; }
+  .stat-card.hi { background:#eff6ff; border-color:#93c5fd; }
+  .stat-label { font-size:11px; color:#6b7280; font-weight:bold; text-transform:uppercase; margin-bottom:4px; }
+  .stat-value { font-size:22px; font-weight:bold; font-family:'Consolas',monospace; color:#1f2937; }
+  .stat-value.hi { font-size:26px; color:#1e3a8a; }
+  .section-title { font-size:15px; font-weight:bold; color:#107c41; border-bottom:2px solid #107c41; padding-bottom:6px; margin:14px 0 10px; }
+  .live-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#22c55e; margin-right:4px; animation:pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes flashGreen { 0%{background:#bbf7d0} 100%{background:transparent} }
+  .flash-update { animation:flashGreen 1.5s ease-out; }
+  .sheet-content { display:none; height:100%; overflow:auto; }
+  .sheet-content.active { display:block; }
+  .info-box { background:#fffbeb; border-left:4px solid #f59e0b; padding:8px 12px; font-size:12px; color:#78350f; margin:8px 0; }
+  .info-box.ok { background:#ecfdf5; border-left-color:#10b981; color:#064e3b; }
+  .info-box.warn { background:#fef2f2; border-left-color:#ef4444; color:#7f1d1d; }
+  @media (max-width: 768px) {
+    body { overflow:auto; }
+    .excel-header-bar { flex-wrap:wrap; gap:6px; padding:8px; }
+    .excel-header-bar > div { width:100%; }
+    .sheet-tab { padding:6px 10px; font-size:11px; }
+    .excel-table { font-size:11px; }
+    .excel-table th, .excel-table td { padding:4px 4px; }
+    .stat-value { font-size:18px; }
+    .stat-value.hi { font-size:22px; }
+    #editModal > div, #settingsModal > div { width:95vw; }
+  }
+</style>
+</head>
+<body class="text-slate-800 flex flex-col h-screen">
+
+<!-- 1. 상단 타이틀 바 -->
+<div class="excel-header-bar px-3 py-1.5 flex justify-between items-center text-[13px] shadow-sm flex-shrink-0 select-none">
+  <div class="flex items-center space-x-3 font-semibold">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+    <span class="tracking-wide">IRP 100세 현금흐름 마스터플래너 — 3계좌 통합전략</span>
+    <span class="bg-white/20 px-2 py-0.5 rounded text-[10px]" id="header-stats">로딩 중...</span>
+  </div>
+  <div class="flex items-center space-x-2">
+    <button onclick="openAssumptions()" class="px-3 py-1.5 bg-white hover:bg-gray-100 text-[#107c41] font-bold text-xs rounded shadow-md border border-white/30">⚙ 가정값 편집</button>
+    <button onclick="openHoldings()" class="px-3 py-1.5 bg-amber-300 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded shadow-md border border-amber-500">📊 종목 매수입력</button>
+    <button onclick="syncGist(true)" id="syncBtn" class="flex items-center space-x-1 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold text-xs rounded shadow-md border border-yellow-500">
+      <span>⚡</span><span id="syncText">동기화</span>
+    </button>
+    <button onclick="exportData()" class="px-3 py-1.5 bg-white hover:bg-gray-100 text-[#107c41] font-bold text-xs rounded shadow-md border border-white/30" title="JSON 다운로드">💾</button>
+    <button onclick="openSettings()" class="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded text-xs" title="설정">⚙️</button>
+    <div class="opacity-90 text-[11px] font-mono border-l border-white/30 pl-2" id="lastSyncTime">로컬 저장</div>
+  </div>
+</div>
+
+<!-- 2. 리본 메뉴 -->
+<div class="bg-[#f3f2f1] border-b border-[#c6c6c6] px-3 py-1.5 flex justify-between items-center flex-shrink-0 select-none flex-wrap gap-2">
+  <div class="flex items-center gap-2 text-xs">
+    <div class="flex items-center space-x-2 font-mono bg-white px-2 py-1 border border-gray-300 shadow-sm">
+      <span class="text-gray-500 font-bold">총자산</span>
+      <strong id="ribbonTotal" class="text-[#107c41]">-</strong>
+      <span class="text-gray-300 mx-1">|</span>
+      <span class="text-gray-500">월 인출 목표</span>
+      <strong id="ribbonMonthly" class="text-blue-700">-</strong>
+      <span class="text-gray-300 mx-1">|</span>
+      <span class="text-gray-500">100세 잔액 예상</span>
+      <strong id="ribbon100" class="text-purple-700">-</strong>
+    </div>
+    <button onclick="recompute(true)" class="px-3 py-1 border border-gray-300 bg-white hover:bg-gray-100 flex items-center space-x-1">
+      <span>🔄</span><span>재계산</span>
+    </button>
+    <span class="ml-1 text-[11px] text-gray-500"><span class="live-dot"></span>가정값 변경 시 자동 재계산</span>
+  </div>
+</div>
+
+<!-- 3. 메인 작업 영역 -->
+<div class="flex-1 flex flex-col overflow-hidden bg-white">
+  <div class="flex items-center border-b border-[#c6c6c6] bg-white h-7 flex-shrink-0 text-xs shadow-sm">
+    <div class="w-10 border-r border-[#c6c6c6] flex justify-center items-center text-gray-500 bg-gray-100 font-serif italic font-bold">fx</div>
+    <div class="flex-1 px-3 text-gray-800 font-mono font-bold text-blue-800" id="formulaBar">=IRP_CASHFLOW(미래에셋, 삼성, 한국투자, 62~100세)</div>
+  </div>
+
+  <div class="flex-1 relative overflow-hidden bg-[#e1dfdd] p-1.5">
+    <div class="w-full h-full bg-white border border-gray-400 shadow-sm overflow-auto" id="sheetPane">
+
+      <!-- Dashboard -->
+      <div id="sheet-dashboard" class="sheet-content active p-5">
+        <div class="flex items-center justify-between mb-3 border-b-2 border-[#107c41] pb-2">
+          <h2 class="text-xl font-bold text-[#107c41]">📊 IRP 100세 현금흐름 마스터 대시보드</h2>
+          <div class="text-sm text-gray-500" id="dash-meta">계산 대기</div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="stat-card"><div class="stat-label">총 투자금액</div><div class="stat-value" id="dash-total">-</div><div class="text-[11px] text-gray-500 mt-1">3개 계좌 합산</div></div>
+          <div class="stat-card hi"><div class="stat-label">황금기 월수령</div><div class="stat-value hi" id="dash-golden">-</div><div class="text-[11px] text-gray-500 mt-1">62~70세 (IRP+기타+국민)</div></div>
+          <div class="stat-card"><div class="stat-label">평생 누적인출</div><div class="stat-value" id="dash-cumul">-</div><div class="text-[11px] text-gray-500 mt-1">62~100세</div></div>
+          <div class="stat-card"><div class="stat-label">100세 미래에셋 잔액</div><div class="stat-value" id="dash-final">-</div><div class="text-[11px] text-gray-500 mt-1">상속 재원</div></div>
+        </div>
+
+        <div class="section-title">▶ 4단계 인출 로드맵 (전강후약 안분)</div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+          <div class="phase-golden p-3 border border-yellow-300">
+            <div class="text-xs font-bold text-yellow-900 mb-1">1단계 황금기 (62~64세, 3년)</div>
+            <div class="text-[11px] text-gray-700 leading-relaxed">미래에셋 단독 月 <strong id="phase-card-1">700</strong>만<br>이연퇴직소득 40% 감면<br><span class="font-bold">실효세율 6.0%</span></div>
+          </div>
+          <div class="phase-golden-plus p-3 border border-blue-300">
+            <div class="text-xs font-bold text-blue-900 mb-1">2단계 황금기+ (65~70세, 6년)</div>
+            <div class="text-[11px] text-gray-700 leading-relaxed">미래에셋+삼성 병행 月 <strong id="phase-card-2">700</strong>만<br>국민연금 시작<br><span class="font-bold">황금기 절정</span></div>
+          </div>
+          <div class="phase-transition p-3 border border-amber-300">
+            <div class="text-xs font-bold text-amber-900 mb-1">3단계 전환기 (71~79세, 9년)</div>
+            <div class="text-[11px] text-gray-700 leading-relaxed">전강후약 점진감소<br>月 <strong id="phase-card-3">500→100</strong>만<br><span class="font-bold">한투·삼성 소진</span></div>
+          </div>
+          <div class="phase-growth p-3 border border-green-300">
+            <div class="text-xs font-bold text-green-900 mb-1">4단계 성장기 (80~100세, 21년)</div>
+            <div class="text-[11px] text-gray-700 leading-relaxed">미래에셋 단독 月 <strong id="phase-card-4">100</strong>만 고정<br>잔액 운용·증식<br><span class="font-bold">상속 재원 확보</span></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div class="border border-gray-300 p-3 shadow-sm">
+            <div class="text-xs font-bold text-center bg-gray-100 p-1.5 mb-2 border border-gray-200">① 연도별 계좌 잔액 추이 (62~100세)</div>
+            <div style="height:280px"><canvas id="balanceChart"></canvas></div>
+          </div>
+          <div class="border border-gray-300 p-3 shadow-sm">
+            <div class="text-xs font-bold text-center bg-gray-100 p-1.5 mb-2 border border-gray-200">② 연도별 인출액 (3계좌 stacked)</div>
+            <div style="height:280px"><canvas id="withdrawChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="border border-gray-300 p-3 shadow-sm">
+            <div class="text-xs font-bold text-center bg-gray-100 p-1.5 mb-2 border border-gray-200">③ 월 현금흐름 구성 (62~100세)</div>
+            <div style="height:280px"><canvas id="monthlyChart"></canvas></div>
+          </div>
+          <div class="border border-gray-300 p-3 shadow-sm">
+            <div class="text-xs font-bold text-center bg-gray-100 p-1.5 mb-2 border border-gray-200">④ 4종목 포트폴리오 비중 (IRP 운용)</div>
+            <div style="height:280px"><canvas id="portfolioChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="info-box ok mt-4">✅ 미래에셋 IRP는 10년 경과로 수령한도 없음 → 연 8,400만 자유인출 가능 (황금기 핵심).</div>
+        <div class="info-box">⚠ 삼성증권 IRP: 2027년 10월 1일까지 인출 불가 — 그 전까지 미래에셋 단독 운용.</div>
+        <div class="info-box warn">⚠ 한국투자증권 개인연금: 연 1,500만원 초과 인출 시 종합과세 위험. 한도 내 분리과세 유지.</div>
+      </div>
+
+      <!-- ④ 4종목 포트폴리오 -->
+      <div id="sheet-portfolio" class="sheet-content p-5">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="text-lg font-bold text-[#107c41]">④ 4종목 IRP 운용 포트폴리오</h2>
+          <button onclick="openHoldings()" class="px-3 py-1.5 bg-amber-300 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded shadow-md border border-amber-500">📊 종목 매수입력 (수동/엑셀/사진)</button>
+        </div>
+        <div class="text-xs text-gray-600 mb-3">총 투자금액 <strong id="pf-total">75,000만원 (7.5억)</strong> | 미래에셋 52,000 + 삼성 15,000 + 한투 8,000</div>
+
+        <div class="section-title">▶ 4종목 포트폴리오 (IRP 운용 기준)</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>분류</th><th>확정 종목명</th><th>코드</th><th>거래소</th><th>비중</th><th>투자금 (만원)</th><th>분배율</th><th>연배당 (만원)</th><th>분배주기</th><th>안전자산</th><th>전략 역할</th></tr></thead>
+          <tbody>
+            <tr class="bg-orange-50"><td class="font-bold">배당ETF 40%</td><td>TIGER 미국배당다우존스</td><td class="font-mono">458730</td><td>KRX</td><td class="text-center">40%</td><td class="text-right font-mono">30,000</td><td class="text-center">3.5%</td><td class="text-right font-mono">1,050</td><td>월배당</td><td>위험자산</td><td class="text-[11px]">배당 성장 + 월 현금흐름 핵심</td></tr>
+            <tr><td class="font-bold">성장ETF 30%</td><td>KODEX 미국나스닥100</td><td class="font-mono">379810</td><td>KRX</td><td class="text-center">30%</td><td class="text-right font-mono">22,500</td><td class="text-center">0.3%</td><td class="text-right font-mono">68</td><td>분기배당</td><td>위험자산</td><td class="text-[11px]">자본 차익 + 나스닥100 장기 성장</td></tr>
+            <tr class="bg-green-50"><td class="font-bold">TDF 20%</td><td>KODEX TDF2050액티브</td><td class="font-mono">434060</td><td>KRX</td><td class="text-center">20%</td><td class="text-right font-mono">15,000</td><td class="text-center">1.5%</td><td class="text-right font-mono">225</td><td>분기배당</td><td>안전자산 (적격)</td><td class="text-[11px]">IRP 70% 한도 우회 / 내부주식 ~80%</td></tr>
+            <tr class="bg-purple-50"><td class="font-bold">커버드콜 10%</td><td>ACE 미국S&P500커버드콜액티브</td><td class="font-mono">441640</td><td>KRX</td><td class="text-center">10%</td><td class="text-right font-mono">7,500</td><td class="text-center">2.5%</td><td class="text-right font-mono">188</td><td>월배당</td><td>안전자산 (적격)</td><td class="text-[11px]">하방 완충 + 월 분배금</td></tr>
+            <tr class="bg-gray-100 font-bold"><td colspan="4">합 계 (4종목)</td><td class="text-center">100%</td><td class="text-right font-mono">75,000</td><td class="text-center">가중평균 1.8%</td><td class="text-right font-mono">1,531</td><td>월+분기</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">▶ 월별 배당 수령 캘린더</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>종목명</th><th>코드</th><th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th><th>7월</th><th>8월</th><th>9월</th><th>10월</th><th>11월</th><th>12월</th></tr></thead>
+          <tbody>
+            <tr><td>TIGER 미국배당다우존스</td><td class="font-mono">458730</td>
+              <td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td><td class="bg-orange-50 text-center">●<br>117만</td>
+            </tr>
+            <tr><td>KODEX 미국나스닥100</td><td class="font-mono">379810</td>
+              <td></td><td></td><td></td><td class="bg-blue-50 text-center">●<br>30만</td><td></td><td></td><td class="bg-blue-50 text-center">●<br>30만</td><td></td><td></td><td class="bg-blue-50 text-center">●<br>30만</td><td></td><td></td>
+            </tr>
+            <tr><td>KODEX TDF2050액티브</td><td class="font-mono">434060</td>
+              <td></td><td></td><td class="bg-green-50 text-center">●<br>75만</td><td></td><td></td><td class="bg-green-50 text-center">●<br>75만</td><td></td><td></td><td class="bg-green-50 text-center">●<br>75만</td><td></td><td></td><td class="bg-green-50 text-center">●<br>75만</td>
+            </tr>
+            <tr><td>ACE S&P500커버드콜액티브</td><td class="font-mono">441640</td>
+              <td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td><td class="bg-purple-50 text-center">●<br>21만</td>
+            </tr>
+            <tr class="bg-gray-100 font-bold"><td>월 배당 합계 (만원)</td><td></td>
+              <td class="text-center">138</td><td class="text-center">138</td><td class="text-center">213</td><td class="text-center">168</td><td class="text-center">138</td><td class="text-center">213</td><td class="text-center">168</td><td class="text-center">138</td><td class="text-center">213</td><td class="text-center">168</td><td class="text-center">138</td><td class="text-center">213</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="info-box ok"><strong>연간 배당 합계 1,531만원 / 년 → 월 평균 128만원</strong></div>
+
+        <div class="section-title flex justify-between items-center">
+          <span>▶ 배당 부족분 → 금/ETF 매도 자동 계산</span>
+          <button onclick="openHoldings();switchHoldingsTab('sell')" class="text-xs px-3 py-1 bg-red-200 hover:bg-red-100 text-red-900 font-bold rounded border border-red-400">📉 매도 처리</button>
+        </div>
+        <div id="dividend-gap-summary" class="mb-3 p-3 bg-amber-50 border border-amber-300 text-xs"></div>
+
+        <div class="section-title flex justify-between items-center">
+          <span>▶ 내 매수 현황 (수동/엑셀/사진 입력)</span>
+          <button onclick="openHoldings()" class="text-xs px-3 py-1 bg-amber-300 hover:bg-amber-200 text-amber-900 font-bold rounded border border-amber-500">＋ 종목 추가</button>
+        </div>
+        <div id="holdings-summary" class="text-xs text-gray-600 mb-2">매수 종목 0건 / 총 매수금액 0만원</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>증권사</th><th>종목명</th><th>코드</th><th>자산구분</th><th class="text-right">수량</th><th class="text-right">매수단가</th><th class="text-right">매수금액(만원)</th><th>매수일</th><th>관리</th></tr></thead>
+          <tbody id="holdings-tbody"><tr><td colspan="9" class="text-center text-gray-400 py-3">아직 등록된 매수 종목이 없습니다. 우상단 [📊 종목 매수입력] 버튼을 눌러주세요.</td></tr></tbody>
+        </table>
+
+        <div class="section-title">▶ 월별 인출 실행 계획 (구간별 안분 기준)</div>
+        <table class="excel-table">
+          <thead><tr><th>순서</th><th>실행 항목</th><th>구체적 내용</th><th>월 금액</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td class="font-bold text-center">STEP 1</td><td>배당 자동 수령</td><td class="text-[11px]">TIGER배당다우존스 + ACE커버드콜 → 매월 자동 입금. 4월·7월·10월: KODEX나스닥100 배당 추가</td><td class="font-bold">月 170만 (평균)</td><td class="text-[11px]">배당입금일 확인 후 생활비 자동이체 설정</td></tr>
+            <tr><td class="font-bold text-center">STEP 2</td><td>ETF 부분 매도</td><td class="text-[11px]">부족분 530만원 조달. 매도 우선순위: KODEX나스닥100 → TIGER배당다우존스 順</td><td class="font-bold">月 530만 (평균)</td><td class="text-[11px]">매월 말 잔고 확인 후 실행 / 주가 하락기 매도 최소화</td></tr>
+            <tr><td class="font-bold text-center">STEP 3</td><td>반기 리밸런싱</td><td class="text-[11px]">6월·12월 비중 점검. 배당ETF 40% / 나스닥 30% / TDF 20% / 커버드콜 10%</td><td>—</td><td class="text-[11px]">±5% 초과 시 조정</td></tr>
+            <tr><td class="font-bold text-center">STEP 4</td><td>연간 세금 확인</td><td class="text-[11px]">연말 연금소득 원천징수영수증 검토 / 퇴직소득세 감면 적용 확인</td><td>—</td><td class="text-[11px]">증권사 세금 서비스 활용</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ⓪ 계좌현황 & 전략 -->
+      <div id="sheet-accounts" class="sheet-content p-5">
+        <h2 class="text-lg font-bold text-[#107c41] mb-2">⓪ 3개 계좌 연금 개시일 분석 & 통합 인출전략</h2>
+        <div class="text-xs text-gray-600 mb-3">삼성증권 IRP 15,000만 (2027.10.01) | 미래에셋 IRP 52,000만 (10년 경과) | 한국투자 개인연금 8,000만 (2024.07.12 개시)</div>
+
+        <div class="section-title">▶ 계좌별 연금 개시일 & 수령 연차 현황 (2026년 5월 기준)</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>증권사</th><th>계좌유형</th><th>개시일</th><th>현재상태</th><th>수령연차</th><th>한도제한</th><th>2026 인출가능</th><th>핵심특징</th><th>세무분류</th><th>인출 우선순위</th><th>전략 포인트</th></tr></thead>
+          <tbody>
+            <tr class="bg-green-50"><td class="font-bold">미래에셋증권</td><td>IRP</td><td>10년 이상 경과</td><td>✅ 개시 완료 (10년+ 경과)</td><td>11년차 이상</td><td>❌ 한도 없음 (11년차~ 자유인출)</td><td>즉시 가능</td><td>한도 무제한 / 황금기 핵심 계좌</td><td>이연퇴직소득 → 분리과세</td><td class="font-bold text-yellow-700">★ 1순위</td><td>퇴직금재원 집중 인출 / 연 8,400만 가능</td></tr>
+            <tr class="bg-yellow-50"><td class="font-bold">삼성증권</td><td>IRP</td><td>2027년 10월 1일</td><td>⏳ 개시 대기 (1년 5개월 후)</td><td>2027.10.1→1년차</td><td>연금수령한도 (1~10년차)</td><td>2027.10.01~ 가능</td><td>개시 후 한도관리 (10년차까지 연차별)</td><td>이연퇴직소득 → 분리과세</td><td class="font-bold text-orange-700">★★ 2순위</td><td>2027.10 이후 삼성+미래에셋 병행</td></tr>
+            <tr class="bg-red-50"><td class="font-bold">한국투자증권</td><td>개인연금 (연금저축/IRP)</td><td>2024년 7월 12일</td><td>✅ 개시 완료 (2년차 진행중)</td><td>2026년 → 3년차</td><td>연간 1,500만원 이내 분리과세</td><td>연 1,500만 한도 내 가능</td><td>연 1,500만 초과 시 종합과세 주의</td><td>납입금+수익 → 연금소득세</td><td class="font-bold text-red-700">★★★ 3순위</td><td>연 1,500만 이내 철저한 한도 관리</td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">▶ 계좌별 인출 시점 로드맵</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>시점</th><th>실행 계좌</th><th>실행 내용</th><th>전략 효과</th></tr></thead>
+          <tbody>
+            <tr><td class="font-bold">지금 ~ 2027.09</td><td>미래에셋증권 IRP만 인출</td><td>10년 경과 → 수령한도 無 → 월 700만 (연 8,400만) 전액 미래에셋에서 인출</td><td class="font-bold text-green-700">황금기 최대 활용</td></tr>
+            <tr><td class="font-bold">2027.10.01~</td><td>삼성증권 IRP 개시 추가</td><td>삼성증권 1년차 개시 → 두 IRP 병행 인출 (연차별 한도 준수)</td><td class="font-bold text-blue-700">인출 분산 최적화</td></tr>
+            <tr><td class="font-bold">연중 상시</td><td>한국투자증권 병행</td><td>개인연금 연 1,500만 이내 분리과세 유지 → 기타 소득 대비 세금 절감</td><td class="font-bold text-purple-700">세금 효율 극대화</td></tr>
+            <tr><td class="font-bold">~70세 전후</td><td>퇴직금재원 소진</td><td>미래에셋+삼성증권 IRP 퇴직금 재원 소진 후 납입금+수익 재원 전환</td><td class="font-bold text-amber-700">재원 전환 모니터링</td></tr>
+          </tbody>
+        </table>
+
+        <div class="info-box warn">⚠ 삼성증권 2027.10.01 이전: 삼성증권 IRP에서 인출 불가. 미래에셋 IRP 단독으로 月 700만 운용</div>
+        <div class="info-box">⚠ 한국투자증권 개인연금: 연간 수령액이 1,500만원 초과하지 않도록 철저히 관리 — 초과 시 종합과세 또는 16.5% 분리과세</div>
+        <div class="info-box ok">✅ 미래에셋 IRP (10년 경과): 수령연차 11년차 이상으로 판단 → 연금수령한도 제한 없음 → 황금기 인출 핵심 계좌</div>
+      </div>
+
+      <!-- ① 수령한도 계산 -->
+      <div id="sheet-limits" class="sheet-content p-5">
+        <h2 class="text-lg font-bold text-[#107c41] mb-2">① 계좌별 연금수령한도 계산 (소득세법 제40조의2)</h2>
+        <div class="text-xs text-gray-600 mb-3">연금수령한도 = 전전연도말 계좌잔액 ÷ (11 - 수령연차) × 120% | 11년차 이후 한도 없음</div>
+
+        <div class="section-title">① 미래에셋증권 IRP — 수령연차 11년차 이상 → 한도 없음</div>
+        <div class="info-box ok">✅ 소득세법상 연금수령연차가 11년차를 초과하면 연금수령한도 제한이 소멸됩니다.<br>→ 미래에셋 IRP에서는 계좌 잔액 전액을 연금으로 자유롭게 인출 가능. 단, 퇴직소득세 감면율은 수령연차에 따라 적용.</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>연도</th><th>연령</th><th>수령연차</th><th>한도 적용</th><th>연 인출가능</th><th>퇴직소득세 감면율</th><th>실효세율</th><th>전략</th></tr></thead>
+          <tbody id="mirae-limit-tbody"></tbody>
+        </table>
+
+        <div class="section-title">② 삼성증권 IRP — 2027.10.01 개시 → 연차별 한도 계산</div>
+        <div class="info-box">잔액 입력 시 자동 계산됩니다. (현재값: <strong id="samsung-balance-display">15,000만원</strong>)</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>연도</th><th>연령</th><th>수령연차</th><th>전년말 잔액(만원)</th><th>한도 계산식</th><th>연 한도(만원)</th><th>월 환산(만원)</th><th>감면율</th><th>실효세율</th></tr></thead>
+          <tbody id="samsung-limit-tbody"></tbody>
+        </table>
+
+        <div class="section-title">③ 한국투자증권 개인연금 — 2024.07.12 개시 → 수령연차 & 1,500만 한도</div>
+        <div class="info-box warn">납입금+수익 재원 → 연간 1,500만원 이하 수령 시 3.3~5.5% 분리과세. 초과 시 종합과세 위험!</div>
+        <table class="excel-table">
+          <thead><tr><th>연도</th><th>연령</th><th>수령연차</th><th>전년말잔액(만원)</th><th>한도 계산식</th><th>연 한도(만원)</th><th>권장인출(연1,500만이내)</th><th>세율</th><th>비고</th></tr></thead>
+          <tbody id="hantu-limit-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- ② 연도별 통합계획 (75년 시뮬레이션) -->
+      <div id="sheet-cashflow" class="sheet-content p-5">
+        <h2 class="text-lg font-bold text-[#107c41] mb-2">② 3계좌 연도별 통합 인출 계획 (62세 ~ 100세, 39년)</h2>
+        <div class="text-xs text-gray-600 mb-3">실제 잔액 반영 자동 시뮬레이션 — 가정값 편집 시 즉시 재계산</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3 text-xs">
+          <div class="border border-gray-300 bg-gray-50 p-2"><div class="font-bold text-gray-600">미래에셋 IRP</div><div class="font-mono text-base font-bold" id="cf-mirae">52,000만원</div><div class="text-[11px] text-gray-500">5.2억 / 10년+ 경과</div></div>
+          <div class="border border-gray-300 bg-gray-50 p-2"><div class="font-bold text-gray-600">삼성증권 IRP</div><div class="font-mono text-base font-bold" id="cf-samsung">15,000만원</div><div class="text-[11px] text-gray-500">1.5억 / 2027.10 개시</div></div>
+          <div class="border border-gray-300 bg-gray-50 p-2"><div class="font-bold text-gray-600">한국투자 개인연금</div><div class="font-mono text-base font-bold" id="cf-hantu">8,000만원</div><div class="text-[11px] text-gray-500">0.8억 / 2024.07 개시</div></div>
+          <div class="border border-blue-300 bg-blue-50 p-2"><div class="font-bold text-blue-800">3계좌 합계</div><div class="font-mono text-base font-bold text-blue-900" id="cf-sum">75,000만원</div><div class="text-[11px] text-blue-700">7.5억 총액</div></div>
+        </div>
+
+        <div class="section-title">▶ 4단계 인출 계획 (구간별 수동 입력 반영 — 전강후약 안분)</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>단계</th><th>기간</th><th>IRP 재원</th><th>月 IRP</th><th>月 기타</th><th>月 국민연금</th><th>月 합계</th><th>연 IRP합계</th><th>세금처리</th><th>건보료</th><th>비고</th></tr></thead>
+          <tbody id="stage-tbody"></tbody>
+        </table>
+
+        <div class="section-title">▶ 100세까지 연간 현금흐름 & 잔액 시뮬레이션 (실제 잔액 기준)</div>
+        <div class="text-[11px] text-gray-500 mb-2">색상: <span class="phase-golden px-2">황금기①(62~64)</span> <span class="phase-golden-plus px-2">황금기②(65~70)</span> <span class="phase-transition px-2">전환기(71~79)</span> <span class="phase-growth px-2">성장기(80~100)</span></div>
+        <table class="excel-table">
+          <thead><tr><th>연도</th><th>연령</th><th>단계</th><th>미래에셋<br>인출(만원)</th><th>미래에셋<br>잔액(만원)</th><th>삼성증권<br>인출(만원)</th><th>삼성증권<br>잔액(만원)</th><th>한투<br>인출(만원)</th><th>한투<br>잔액(만원)</th><th>IRP 월합계<br>(만원)</th><th>총 월합계<br>(만원)</th><th>비고</th></tr></thead>
+          <tbody id="cashflow-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- ③ 세금요약 -->
+      <div id="sheet-tax" class="sheet-content p-5">
+        <h2 class="text-lg font-bold text-[#107c41] mb-2">③ 계좌별 세금 & 건보료 요약</h2>
+
+        <div class="section-title">▶ 3개 계좌 세무 특성 비교</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>구분</th><th class="bg-green-50">미래에셋증권 IRP</th><th class="bg-yellow-50">삼성증권 IRP</th><th class="bg-red-50">한국투자증권 개인연금</th></tr></thead>
+          <tbody>
+            <tr><td class="font-bold">계좌 유형</td><td>IRP (퇴직연금)</td><td>IRP (퇴직연금)</td><td>개인연금 (연금저축/IRP)</td></tr>
+            <tr><td class="font-bold">연금 개시일</td><td>10년 이상 경과 (즉시 인출가능)</td><td>2027년 10월 1일 (현재 인출불가)</td><td>2024년 7월 12일 (2년차 진행)</td></tr>
+            <tr><td class="font-bold">수령 연차</td><td>11년차+ → 한도 없음</td><td>2027.10~ 1년차 시작</td><td>2026년 → 3년차</td></tr>
+            <tr><td class="font-bold">주요 재원</td><td>이연퇴직소득 (무조건 분리과세)</td><td>이연퇴직소득 (무조건 분리과세)</td><td>납입금+운용수익 (연 1,500만 한도)</td></tr>
+            <tr><td class="font-bold">세금 처리</td><td class="font-bold text-green-700">퇴직소득세×60% (11년차 40% 감면)</td><td class="font-bold text-yellow-700">퇴직소득세×70% (1년차 30% 감면)</td><td class="font-bold text-red-700">연금소득세 3.3% (~70세 미만)</td></tr>
+            <tr><td class="font-bold">종합소득세 합산</td><td>❌ 합산 없음 (분리과세)</td><td>❌ 합산 없음 (분리과세)</td><td>연 1,500만 이하: ❌ / 초과 시: ✅</td></tr>
+            <tr><td class="font-bold">건강보험료</td><td class="text-green-700">비부과</td><td class="text-green-700">비부과</td><td class="text-green-700">비부과</td></tr>
+            <tr><td class="font-bold">연간 최대 인출</td><td class="font-bold">무제한</td><td>연차별 한도 (1년차: 잔액×12%)</td><td>권장 1,500만원 (분리과세 한도)</td></tr>
+            <tr><td class="font-bold">인출 우선순위</td><td class="font-bold text-yellow-700">★ 1순위 (황금기 핵심)</td><td class="font-bold text-orange-700">★★ 2순위 (2027.10 이후)</td><td class="font-bold text-red-700">★★★ 3순위 (한도 내 병행)</td></tr>
+          </tbody>
+        </table>
+
+        <div class="info-box warn">⚠ <strong>핵심 주의:</strong> 한국투자증권 연간 1,500만원 초과 인출 시 해당 연도 전체 연금소득 종합과세 위험 — 기타수입 연 8,400만원과 합산 시 최고세율 적용 가능</div>
+        <div class="info-box ok">✅ <strong>미래에셋 10년 경과 = 황금기 최대 효율 계좌.</strong> 삼성증권 2027년까지 운용 수익률 극대화 후 개시.</div>
+
+        <div class="section-title">▶ 인출 단계별 세후 수령액 시뮬레이션</div>
+        <table class="excel-table mb-4">
+          <thead><tr><th>단계</th><th>기간</th><th>연 인출액</th><th>적용 세율</th><th>연 세금</th><th>세후 수령</th><th>월 세후</th></tr></thead>
+          <tbody id="tax-sim-tbody"></tbody>
+        </table>
+
+        <div class="section-title">▶ 평생 세금 누적 예상</div>
+        <table class="excel-table">
+          <thead><tr><th>항목</th><th>금액 (만원)</th><th>비고</th></tr></thead>
+          <tbody id="tax-cumul-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 4. 시트 탭 -->
+<div class="sheet-tabs-container flex-shrink-0" id="sheetTabs">
+  <div class="sheet-tab active" data-sheet="dashboard">🏠 대시보드</div>
+  <div class="sheet-tab" data-sheet="portfolio">④ 확정 포트폴리오</div>
+  <div class="sheet-tab" data-sheet="accounts">⓪ 계좌현황 & 전략</div>
+  <div class="sheet-tab" data-sheet="limits">① 수령한도 계산</div>
+  <div class="sheet-tab" data-sheet="cashflow">② 100세 통합계획</div>
+  <div class="sheet-tab" data-sheet="tax">③ 세금요약</div>
+</div>
+
+<!-- 5. 상태 표시줄 -->
+<div class="bg-[#f3f2f1] border-t border-[#c6c6c6] px-3 py-1 flex justify-between items-center text-[11px] text-gray-600 flex-shrink-0 select-none">
+  <div class="flex items-center space-x-4">
+    <span class="flex items-center space-x-1"><span class="w-2 h-2 bg-green-500 rounded-full"></span><span class="font-bold text-gray-700">시뮬레이션 완료</span></span>
+    <span class="font-mono" id="status-count">62~100세 / 39년</span>
+  </div>
+  <div class="flex items-center space-x-4 font-mono">
+    <span id="status-sum" class="font-bold text-gray-800">평생 누적 인출: -</span>
+    <span class="px-2 text-gray-400">|</span>
+    <span>IRP 마스터플래너 v1.0</span>
+  </div>
+</div>
+
+<!-- 가정값 편집 모달 -->
+<div id="assumptionsModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+  <div class="bg-white border border-gray-400 shadow-2xl w-[560px] max-w-full max-h-[92vh] overflow-y-auto">
+    <div class="bg-[#107c41] text-white px-4 py-2 text-sm font-bold flex justify-between items-center sticky top-0">
+      <span>⚙ 가정값 편집 — 실시간 재계산</span>
+      <button onclick="closeAssumptions()" class="hover:bg-white/20 px-2 font-bold">✕</button>
+    </div>
+    <div class="p-5 space-y-4 text-sm">
+      <div class="border border-gray-300 p-3 bg-gray-50">
+        <div class="font-bold text-[#107c41] mb-2 text-xs">▶ 3계좌 잔액 (만원)</div>
+        <div class="grid grid-cols-1 gap-2">
+          <label class="block"><span class="text-gray-600 text-xs font-bold">미래에셋 IRP (10년+ 경과)</span><input id="ai-mirae" type="number" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-gray-600 text-xs font-bold">삼성증권 IRP (2027.10 개시)</span><input id="ai-samsung" type="number" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-gray-600 text-xs font-bold">한국투자 개인연금 (2024.07 개시)</span><input id="ai-hantu" type="number" class="modal-input mt-1 text-right font-mono"></label>
+        </div>
+      </div>
+
+      <div class="border border-gray-300 p-3 bg-gray-50">
+        <div class="font-bold text-[#107c41] mb-2 text-xs">▶ 기본 가정값</div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="block"><span class="text-gray-600 text-xs font-bold">시작 연령</span><input id="ai-startAge" type="number" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-gray-600 text-xs font-bold">종료 연령</span><input id="ai-endAge" type="number" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-gray-600 text-xs font-bold">연 운용수익률 (%)</span><input id="ai-returnRate" type="number" step="0.1" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-gray-600 text-xs font-bold">성장기 운용수익률 (%)</span><input id="ai-lateReturnRate" type="number" step="0.1" class="modal-input mt-1 text-right font-mono"></label>
+        </div>
+      </div>
+
+      <div class="border border-orange-400 p-3 bg-orange-50">
+        <div class="font-bold text-orange-900 mb-2 text-xs">▶ 퇴직시점 (선택) — 입력 시 이 시점이 인출 최대치</div>
+        <div class="grid grid-cols-2 gap-2 items-end">
+          <label class="block"><span class="text-orange-900 text-xs font-bold">퇴직 연령 (비워두면 즉시 인출 시작)</span><input id="ai-retirementAge" type="number" placeholder="비워두면 startAge부터" class="modal-input mt-1 text-right font-mono"></label>
+          <div class="text-[11px] text-orange-800">💡 퇴직시점이 정해지면 입력. 그 시점부터 phase1 최대 인출 시작 → 점진 감소.</div>
+        </div>
+      </div>
+
+      <div class="border border-green-400 p-3 bg-green-50">
+        <div class="font-bold text-green-900 mb-2 text-xs">▶ 80~100세 자금 소진 구조</div>
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input id="ai-depleteAt100" type="checkbox" class="mt-1">
+          <span class="text-xs text-green-900"><strong>100세에 자금 0이 되도록 자동 인출 (annuity)</strong><br>
+          체크 시: 80세부터 잔액을 21년에 걸쳐 균등 인출 (운용수익 고려) → 100세 잔액 0<br>
+          해제 시: 月 phase4Monthly 고정 인출 → 100세에 잔액 남으면 상속재원</span>
+        </label>
+      </div>
+
+      <div class="border-2 border-blue-500 p-3 bg-blue-50">
+        <div class="font-bold text-blue-900 mb-2 text-sm">⭐ 月 IRP 마스터 목표 → 자동 분배 + 100세 보정</div>
+        <div class="grid grid-cols-1 gap-2">
+          <label class="block"><span class="text-blue-900 text-xs font-bold">月 IRP 마스터 목표값 (만원, 65세 peak 기준)</span>
+            <input id="ai-masterMonthly" type="number" class="modal-input mt-1 text-right font-mono text-lg" placeholder="예: 700" oninput="onMasterChange()">
+          </label>
+          <div class="flex gap-2">
+            <button type="button" onclick="distributePhases()" class="flex-1 px-3 py-2 bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 rounded">📊 비례 분배 (1단계 peak → 점진 감소)</button>
+            <button type="button" onclick="adjustForCentenarian()" class="flex-1 px-3 py-2 bg-red-600 text-white font-bold text-sm hover:bg-red-700 rounded">🔧 100세 자동 보정</button>
+          </div>
+          <div class="text-[11px] text-blue-800 bg-white border border-blue-200 p-2 rounded">
+            💡 <strong>비례 분배:</strong> 1단계 0(62~64 소득활동기간) / <strong>2단계 = 마스터값(65세 peak)</strong> / 3단계 ×0.6 / 4단계 100만<br>
+            💡 <strong>100세 자동 보정:</strong> 현재 phase 값으로 시뮬 → 100세 이전 소진 감지 → 모든 phase 값을 비례 축소하여 자금 도달까지 자동 조정
+          </div>
+          <div id="ai-correction-result" class="text-[11px] hidden"></div>
+        </div>
+      </div>
+
+      <div class="border border-amber-400 p-3 bg-amber-50">
+        <div class="font-bold text-amber-900 mb-2 text-xs">▶ 구간별 월 인출액 수동입력 (전강후약 안분)</div>
+        <div class="grid grid-cols-1 gap-2">
+          <label class="block"><span class="text-gray-700 text-xs font-bold">1단계 황금기 (62~64세) 月 IRP 인출 (만원) — <strong>기본 0 (소득활동기간)</strong></span><input id="ai-phase1" type="number" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-blue-900 text-xs font-bold">2단계 황금기+ (65~70세) 月 IRP 인출 (만원) — <strong class="text-red-600">★ 65세 peak (최대)</strong></span><input id="ai-phase2" type="number" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-amber-900 text-xs font-bold">3단계 전환기 (71~79세) 月 IRP 인출 시작값 (만원, 점진 감소)</span><input id="ai-phase3" type="number" class="modal-input mt-1 text-right font-mono"></label>
+          <label class="block"><span class="text-green-900 text-xs font-bold">4단계 성장기 (80~100세) 月 IRP 인출 고정 (만원)</span><input id="ai-phase4" type="number" class="modal-input mt-1 text-right font-mono"></label>
+        </div>
+        <div class="text-[11px] text-amber-800 mt-2">💡 <strong>65세 peak 구조:</strong> 62~64세는 0 (소득활동기간) → 65세부터 peak 인출 → 점진 감소 → 80세부터 100만 고정.</div>
+      </div>
+
+      <div class="border border-gray-300 p-3 bg-gray-50">
+        <div class="font-bold text-[#107c41] mb-2 text-xs">▶ 국민연금 & 기타수입</div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="block"><span class="text-gray-600 text-xs font-bold">국민연금 시작 연도</span><input id="ai-pensionStartYear" type="number" class="modal-input mt-1 text-right font-mono" placeholder="2030"></label>
+          <label class="block"><span class="text-gray-600 text-xs font-bold">국민연금 월액 (만원)</span><input id="ai-pensionAmt" type="number" class="modal-input mt-1 text-right font-mono" placeholder="160"></label>
+          <label class="block col-span-2"><span class="text-gray-600 text-xs font-bold">月 기타수입 (배당/임대 등, 만원) — 수동 입력</span><input id="ai-otherIncome" type="number" min="0" class="modal-input mt-1 text-right font-mono" placeholder="0"></label>
+        </div>
+      </div>
+
+      <div class="border border-gray-300 p-3 bg-gray-50">
+        <div class="font-bold text-[#107c41] mb-2 text-xs">▶ 한국투자 연 인출 한도 (만원)</div>
+        <label class="block"><span class="text-gray-600 text-xs font-bold">분리과세 유지 한도 (기본 1,500)</span><input id="ai-hantuLimit" type="number" class="modal-input mt-1 text-right font-mono"></label>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-200 p-2 text-[11px] text-blue-800">
+        💡 <strong>모든 값을 변경하면 즉시 100세 시뮬레이션이 재계산됩니다.</strong><br>
+        💾 localStorage에 자동 저장됩니다. (GitHub Gist 동기화는 [설정] 메뉴 참조)
+      </div>
+    </div>
+    <div class="bg-gray-100 p-3 flex justify-between border-t border-gray-300 sticky bottom-0">
+      <button onclick="resetAssumptions()" class="px-4 py-1.5 bg-yellow-50 border border-yellow-400 text-yellow-800 text-sm font-bold hover:bg-yellow-100">🔄 기본값 복원</button>
+      <div class="flex gap-2">
+        <button onclick="closeAssumptions()" class="px-4 py-1.5 bg-white border border-gray-400 text-sm font-bold hover:bg-gray-50">취소</button>
+        <button onclick="saveAssumptions()" class="px-6 py-1.5 bg-[#107c41] text-white border border-[#0a5a2f] text-sm font-bold hover:bg-[#0a5a2f]">💾 저장 & 재계산</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 설정 모달 -->
+<div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+  <div class="bg-white border border-gray-400 shadow-2xl w-[500px] max-w-full">
+    <div class="bg-[#107c41] text-white px-4 py-2 text-sm font-bold flex justify-between items-center">
+      <span>⚙️ 설정 — GitHub Gist 동기화</span>
+      <button onclick="closeSettings()" class="hover:bg-white/20 px-2 font-bold">✕</button>
+    </div>
+    <div class="p-5 space-y-3 text-sm">
+      <div class="bg-blue-50 border border-blue-200 p-2 text-[11px] text-blue-800">
+        💡 GitHub Gist에 데이터를 저장해 PC ↔ 모바일 자동 동기화. 다른 앱(가계부/부동산 등)과 동일한 토큰 사용 가능.
+      </div>
+      <label class="block"><span class="text-gray-600 text-xs font-bold">GitHub Personal Access Token (gist 권한)</span>
+        <input id="st-token" type="password" class="modal-input mt-1 font-mono text-xs" placeholder="ghp_...">
+      </label>
+      <label class="block"><span class="text-gray-600 text-xs font-bold">Gist ID (비워두면 새로 생성)</span>
+        <input id="st-gistId" class="modal-input mt-1 font-mono text-xs" placeholder="비워두면 자동 생성">
+      </label>
+      <div class="bg-yellow-50 border border-yellow-200 p-2 text-[11px] text-yellow-900">
+        <strong>동기화 코드 프리픽스:</strong> <code class="bg-white px-1 rounded">irpSync:</code><br>
+        다른 기기에서 동기화 코드를 받으려면 [💾 내보내기] 후 동기화 코드를 입력해 주세요.
+      </div>
+      <label class="block"><span class="text-gray-600 text-xs font-bold">동기화 코드 입력 (irpSync:... 형식)</span>
+        <textarea id="st-syncCode" class="modal-input mt-1 font-mono text-[10px]" rows="3" placeholder="irpSync:eyJhc..."></textarea>
+        <button onclick="importSyncCode()" class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700">⬇ 동기화 코드로 가져오기</button>
+      </label>
+    </div>
+    <div class="bg-gray-100 p-3 flex justify-between border-t border-gray-300">
+      <button onclick="generateSyncCode()" class="px-4 py-1.5 bg-blue-50 border border-blue-400 text-blue-800 text-sm font-bold hover:bg-blue-100">📤 동기화 코드 생성</button>
+      <div class="flex gap-2">
+        <button onclick="closeSettings()" class="px-4 py-1.5 bg-white border border-gray-400 text-sm font-bold hover:bg-gray-50">취소</button>
+        <button onclick="saveSettings()" class="px-6 py-1.5 bg-[#107c41] text-white border border-[#0a5a2f] text-sm font-bold hover:bg-[#0a5a2f]">💾 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 종목 매수입력 모달 (수동/엑셀/사진 3종 통합) -->
+<div id="holdingsModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+  <div class="bg-white border border-gray-400 shadow-2xl w-[720px] max-w-full max-h-[92vh] overflow-y-auto">
+    <div class="bg-[#107c41] text-white px-4 py-2 text-sm font-bold flex justify-between items-center sticky top-0">
+      <span>📊 종목 매수입력 — 수동 / 엑셀 일괄 / 사진 OCR</span>
+      <button onclick="closeHoldings()" class="hover:bg-white/20 px-2 font-bold">✕</button>
+    </div>
+
+    <!-- 탭 -->
+    <div class="flex border-b border-gray-300 bg-gray-50">
+      <button class="hd-tab flex-1 px-4 py-2 text-sm font-bold border-r border-gray-300 bg-white text-[#107c41] border-b-2 border-b-[#107c41]" data-tab="manual" onclick="switchHoldingsTab('manual')">✏️ 매수 수동</button>
+      <button class="hd-tab flex-1 px-4 py-2 text-sm font-bold border-r border-gray-300 text-gray-600 hover:bg-white" data-tab="excel" onclick="switchHoldingsTab('excel')">📥 엑셀 일괄</button>
+      <button class="hd-tab flex-1 px-4 py-2 text-sm font-bold border-r border-gray-300 text-gray-600 hover:bg-white" data-tab="ocr" onclick="switchHoldingsTab('ocr')">📸 사진 OCR</button>
+      <button class="hd-tab flex-1 px-4 py-2 text-sm font-bold text-gray-600 hover:bg-white" data-tab="sell" onclick="switchHoldingsTab('sell')">📉 매도</button>
+    </div>
+
+    <!-- 수동입력 탭 -->
+    <div id="hd-tab-manual" class="hd-tab-content p-5 space-y-3 text-sm">
+      <div class="grid grid-cols-2 gap-2">
+        <label class="block"><span class="text-gray-600 text-xs font-bold">증권사 (계좌)</span>
+          <select id="hd-broker" class="modal-input mt-1">
+            <option value="미래에셋 IRP">미래에셋 IRP</option>
+            <option value="삼성증권 IRP">삼성증권 IRP</option>
+            <option value="한국투자 개인연금">한국투자 개인연금</option>
+          </select>
+        </label>
+        <label class="block"><span class="text-gray-600 text-xs font-bold">매수일</span><input id="hd-date" type="date" class="modal-input mt-1"></label>
+      </div>
+      <label class="block"><span class="text-gray-600 text-xs font-bold">종목명</span><input id="hd-name" class="modal-input mt-1" placeholder="TIGER 미국배당다우존스"></label>
+      <div class="grid grid-cols-2 gap-2">
+        <label class="block"><span class="text-gray-600 text-xs font-bold">종목코드</span><input id="hd-code" class="modal-input mt-1 font-mono" placeholder="458730"></label>
+        <label class="block"><span class="text-gray-600 text-xs font-bold">자산구분</span>
+          <select id="hd-type" class="modal-input mt-1">
+            <option value="배당ETF">배당ETF</option>
+            <option value="성장ETF">성장ETF</option>
+            <option value="TDF">TDF</option>
+            <option value="커버드콜">커버드콜</option>
+            <option value="채권">채권</option>
+            <option value="기타">기타</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <label class="block"><span class="text-gray-600 text-xs font-bold">수량 (주)</span><input id="hd-qty" type="number" class="modal-input mt-1 text-right font-mono"></label>
+        <label class="block"><span class="text-gray-600 text-xs font-bold">매수단가 (원)</span><input id="hd-price" type="number" class="modal-input mt-1 text-right font-mono"></label>
+        <label class="block"><span class="text-gray-600 text-xs font-bold">매수금액 (만원)</span><input id="hd-amount" type="number" class="modal-input mt-1 text-right font-mono"></label>
+      </div>
+      <input type="hidden" id="hd-editId">
+      <div class="flex gap-2">
+        <button onclick="saveHolding()" class="flex-1 px-4 py-2 bg-[#107c41] text-white font-bold text-sm hover:bg-[#0a5a2f] rounded">＋ 종목 추가 / 저장</button>
+        <button onclick="clearHoldingForm()" class="px-4 py-2 bg-gray-100 border border-gray-300 font-bold text-sm hover:bg-gray-200 rounded">취소</button>
+      </div>
+    </div>
+
+    <!-- 엑셀 일괄 탭 -->
+    <div id="hd-tab-excel" class="hd-tab-content p-5 space-y-3 text-sm hidden">
+      <div class="bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900">
+        💡 <strong>엑셀 컬럼 형식:</strong> 증권사, 종목명, 종목코드, 자산구분, 수량, 매수단가, 매수금액(만원), 매수일<br>
+        첫 행은 헤더로 자동 인식됩니다.
+      </div>
+      <div class="flex gap-2">
+        <button onclick="downloadTemplate()" class="flex-1 px-3 py-2 bg-blue-50 border border-blue-300 text-blue-800 font-bold text-sm hover:bg-blue-100 rounded">📄 템플릿 엑셀 다운로드</button>
+        <label class="flex-1 px-3 py-2 bg-[#107c41] text-white font-bold text-sm hover:bg-[#0a5a2f] cursor-pointer text-center rounded">
+          📥 엑셀 파일 선택 (.xlsx, .csv)
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="importExcel(event)" class="hidden">
+        </label>
+      </div>
+      <div id="hd-excel-preview" class="text-xs text-gray-600 mt-2"></div>
+    </div>
+
+    <!-- 사진 OCR 탭 -->
+    <div id="hd-tab-ocr" class="hd-tab-content p-5 space-y-3 text-sm hidden">
+      <div class="bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-900">
+        💡 증권사 앱 보유종목 캡쳐본 또는 매수확인서 사진을 업로드하면 종목명/수량/금액을 자동 추출합니다.<br>
+        (Tesseract.js 한국어+영어 인식 — 처음 실행 시 모델 로딩 약 10초)
+      </div>
+      <label class="block px-3 py-2 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold text-sm cursor-pointer text-center rounded">
+        📸 매수내역 사진 업로드
+        <input type="file" accept="image/*" onchange="runOcr(event)" class="hidden">
+      </label>
+      <div id="hd-ocr-progress" class="text-xs text-blue-700 hidden">⏳ OCR 인식 중... <span id="hd-ocr-pct">0%</span></div>
+      <div id="hd-ocr-preview" class="text-xs"></div>
+      <textarea id="hd-ocr-text" rows="6" class="modal-input font-mono text-[10px]" placeholder="OCR 결과 텍스트가 여기 표시됩니다. 직접 수정 후 [텍스트에서 종목 추출] 클릭"></textarea>
+      <button onclick="parseOcrText()" class="w-full px-3 py-2 bg-[#107c41] text-white font-bold text-sm hover:bg-[#0a5a2f] rounded">🔍 텍스트에서 종목 자동 추출</button>
+    </div>
+
+    <!-- 매도 탭 -->
+    <div id="hd-tab-sell" class="hd-tab-content p-5 space-y-3 text-sm hidden">
+      <div class="bg-red-50 border border-red-200 p-3 text-xs text-red-900">
+        💡 보유 종목에서 ETF/주식수 단위로 매도 처리. 매도 시 매수 잔량이 자동 차감되고 매도 이력에 기록됩니다.<br>
+        💡 <strong>배당 부족분 보충용 매도</strong>도 여기서 처리 — 금 ETF, 나스닥 등 우선 매도 가능.
+      </div>
+      <label class="block"><span class="text-gray-600 text-xs font-bold">매도 종목 선택 (보유 종목)</span>
+        <select id="sl-holdingId" class="modal-input mt-1" onchange="sellHoldingSelected()">
+          <option value="">-- 보유 종목 선택 --</option>
+        </select>
+      </label>
+      <div id="sl-current" class="text-[11px] text-gray-700 bg-gray-50 border border-gray-200 p-2 hidden">
+        보유: <strong id="sl-curQty">0</strong>주 / 매수금액 <strong id="sl-curAmt">0</strong>만원 / <span id="sl-curBroker">-</span>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <label class="block"><span class="text-gray-600 text-xs font-bold">매도 수량 (주)</span><input id="sl-qty" type="number" class="modal-input mt-1 text-right font-mono"></label>
+        <label class="block"><span class="text-gray-600 text-xs font-bold">매도 단가 (원)</span><input id="sl-price" type="number" class="modal-input mt-1 text-right font-mono"></label>
+        <label class="block"><span class="text-gray-600 text-xs font-bold">매도 금액 (만원)</span><input id="sl-amount" type="number" class="modal-input mt-1 text-right font-mono"></label>
+      </div>
+      <label class="block"><span class="text-gray-600 text-xs font-bold">매도일</span><input id="sl-date" type="date" class="modal-input mt-1"></label>
+      <label class="block"><span class="text-gray-600 text-xs font-bold">사유 (선택)</span>
+        <select id="sl-reason" class="modal-input mt-1">
+          <option value="배당부족 보충">배당부족 보충 (인출 충당)</option>
+          <option value="리밸런싱">리밸런싱</option>
+          <option value="손절">손절</option>
+          <option value="익절">익절</option>
+          <option value="기타">기타</option>
+        </select>
+      </label>
+      <button onclick="executeSell()" class="w-full px-4 py-2 bg-red-600 text-white font-bold text-sm hover:bg-red-700 rounded">📉 매도 실행 (보유 차감 + 이력 기록)</button>
+
+      <!-- 매도 이력 -->
+      <div class="border-t border-gray-200 pt-3 mt-3">
+        <div class="font-bold text-red-700 text-xs mb-1 flex justify-between items-center">
+          <span>📋 매도 이력 (<span id="sl-count">0</span>건)</span>
+          <button onclick="clearAllSells()" class="text-[10px] px-2 py-0.5 bg-red-50 border border-red-300 text-red-700 hover:bg-red-100 rounded">🗑 전체 삭제</button>
+        </div>
+        <table class="excel-table">
+          <thead><tr><th>매도일</th><th>증권사</th><th>종목명</th><th class="text-right">수량</th><th class="text-right">단가</th><th class="text-right">매도액(만)</th><th>사유</th><th>관리</th></tr></thead>
+          <tbody id="sl-list-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 매수 종목 리스트 -->
+    <div class="border-t border-gray-300 p-4 bg-gray-50">
+      <div class="font-bold text-sm text-[#107c41] mb-2 flex justify-between items-center">
+        <span>📋 매수 종목 목록 (<span id="hd-count">0</span>건)</span>
+        <button onclick="clearAllHoldings()" class="text-xs px-2 py-1 bg-red-50 border border-red-300 text-red-700 hover:bg-red-100 rounded">🗑 전체 삭제</button>
+      </div>
+      <table class="excel-table">
+        <thead><tr><th>증권사</th><th>종목명</th><th>코드</th><th>구분</th><th class="text-right">수량</th><th class="text-right">매수금액(만)</th><th>매수일</th><th>관리</th></tr></thead>
+        <tbody id="hd-list-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="bg-gray-100 p-3 flex justify-end border-t border-gray-300 sticky bottom-0">
+      <button onclick="closeHoldings()" class="px-6 py-1.5 bg-[#107c41] text-white border border-[#0a5a2f] text-sm font-bold hover:bg-[#0a5a2f] rounded">완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white px-5 py-3 rounded shadow-lg text-sm font-bold hidden"></div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   IRP 100세 현금흐름 마스터플래너 — Core Engine
+   ════════════════════════════════════════════════════ */
+
+const DEFAULT_ASSUMPTIONS = {
+  // 3계좌 잔액 (만원)
+  miraeBalance: 52000,
+  samsungBalance: 15000,
+  hantuBalance: 8000,
+  // 인출 가정값
+  startAge: 62,
+  endAge: 100,
+  returnRate: 8.5,     // % per year (62~79세)
+  lateReturnRate: 4.0, // % per year (80세 이후 성장기 보수운용)
+  // 구간별 월 인출액 (만원) — 65세 peak, 62~64세는 0 (소득활동기간)
+  phase1Monthly: 0,    // 황금기 62~64 (인출 없음 — 소득활동기간)
+  phase2Monthly: 700,  // 황금기+ 65~70 (peak)
+  phase3Monthly: 420,  // 전환기 71~79 시작값 (peak × 0.6)
+  phase4Monthly: 100,  // 성장기 80~100 고정
+  // 국민연금 & 기타수입
+  pensionStartYear: 2030,  // 국민연금 수령 시작 연도 (사용자: 2030년부터)
+  pensionAmt: 160,         // 월 수령액 (만원)
+  otherIncome: 0,          // 月 기타수입 (배당/임대 등, 만원) — 수동 입력
+  // 한투 분리과세 한도
+  hantuLimit: 1500,
+  // 삼성 개시 연도
+  samsungStartYear: 2027,
+  // 퇴직시점 (비워두면 startAge부터 인출. 입력 시 그 시점이 phase1Monthly peak)
+  retirementAge: null,
+  // 100세 자금 소진 모드 (true: annuity로 자동 조정 / false: 월 phase4Monthly 고정)
+  depleteAt100: true,
+};
+
+let state = {
+  assumptions: { ...DEFAULT_ASSUMPTIONS },
+  settings: { token: "", gistId: "" },
+  holdings: [],   // 매수 종목 리스트
+  sells: [],      // 매도 이력
+  simulation: null,
+  updatedAt: new Date().toISOString(),
+};
+
+const charts = {};
+
+/* ─────── State load/save ─────── */
+function saveState() {
+  state.updatedAt = new Date().toISOString();
+  localStorage.setItem("irpPlannerState", JSON.stringify(state));
+  // debounced gist sync
+  if (state.settings.token && state.settings.gistId) {
+    clearTimeout(window._syncTimer);
+    window._syncTimer = setTimeout(() => syncGist(false), 2000);
+  }
+}
+function loadState() {
+  const raw = localStorage.getItem("irpPlannerState");
+  if (raw) {
+    try {
+      const loaded = JSON.parse(raw);
+      state.assumptions = { ...DEFAULT_ASSUMPTIONS, ...(loaded.assumptions || {}) };
+      state.settings = { ...state.settings, ...(loaded.settings || {}) };
+      state.holdings = Array.isArray(loaded.holdings) ? loaded.holdings : [];
+      state.sells = Array.isArray(loaded.sells) ? loaded.sells : [];
+      state.updatedAt = loaded.updatedAt || state.updatedAt;
+    } catch (e) { console.warn("load failed", e); }
+  }
+}
+
+/* ─────── Cash flow simulator ─────── */
+function getPhaseMonthly(age, a) {
+  // 전강후약 안분 — 퇴직시점(retirementAge)이 인출 peak
+  // 퇴직시점 미설정 시 startAge부터 phase1 적용 (현재 = 62세 시작)
+  const peakAge = a.retirementAge || a.startAge;
+
+  // 퇴직 이전: 인출 0 (소득 활동기간으로 가정)
+  if (age < peakAge) return 0;
+
+  // 퇴직 후 3년: 1단계 peak (전강후약 최대)
+  if (age <= peakAge + 2) return a.phase1Monthly;
+
+  // 황금기+ (peakAge+3 ~ peakAge+8 / 보통 65~70세 구간)
+  if (age <= peakAge + 8) return a.phase2Monthly;
+
+  // 전환기 (peakAge+9 ~ peakAge+17 / 보통 71~79세)
+  if (age <= peakAge + 17) {
+    const t = (age - (peakAge + 9)) / 8; // 0→1
+    return Math.round(a.phase3Monthly - (a.phase3Monthly - a.phase4Monthly) * t);
+  }
+  // 성장기: 80세부터 = peakAge+18 부터
+  return a.phase4Monthly;
+}
+
+// 100세 자금 소진 모드: 80세부터 잔액 annuity 인출
+function annuityMonthly(balance, years, ratePct) {
+  const r = ratePct / 100;
+  if (balance <= 0 || years <= 0) return 0;
+  if (Math.abs(r) < 1e-6) return Math.round(balance / years / 12);
+  const yearly = balance * r / (1 - Math.pow(1 + r, -years));
+  return Math.round(yearly / 12);
+}
+
+function simulate() {
+  const a = state.assumptions;
+  const r = a.returnRate / 100;
+  const rLate = a.lateReturnRate / 100;
+  const hantuLimit = a.hantuLimit;
+
+  let miraeBal = a.miraeBalance;
+  let samsungBal = a.samsungBalance;
+  let hantuBal = a.hantuBalance;
+  const rows = [];
+  const startYear = 2026;
+  const endYear = startYear + (a.endAge - a.startAge);
+
+  let cumulativeWithdraw = 0;
+  let totalTaxEst = 0;
+
+  for (let year = startYear; year <= endYear; year++) {
+    const age = a.startAge + (year - startYear);
+    const phase = getPhase(age);
+    const yearReturn = age >= 80 ? rLate : r;
+
+    let monthlyTarget = getPhaseMonthly(age, a);
+    // 80세 이후 100세 자금 소진 모드: 잔액 annuity 인출
+    if (age >= 80 && a.depleteAt100) {
+      const yearsLeft = a.endAge - age + 1;
+      const totalBal = miraeBal + samsungBal + hantuBal;
+      monthlyTarget = annuityMonthly(totalBal, yearsLeft, a.lateReturnRate);
+    }
+    const yearlyTarget = monthlyTarget * 12;
+
+    let miraeWithdraw = 0, samsungWithdraw = 0, hantuWithdraw = 0;
+    let note = "";
+
+    // 삼성 수령연차 (2027=1년차)
+    const samsungYearIdx = year - a.samsungStartYear + 1;
+    const samsungAvail = samsungYearIdx >= 1;
+    const samsungLimit = !samsungAvail ? 0
+      : (samsungYearIdx >= 10 ? samsungBal : (samsungBal / (11 - samsungYearIdx)) * 1.2);
+
+    // ─ 한투 인출 (병행, 분리과세 1,500만 한도) — 2024=1년차, 2026=3년차 ─
+    const hantuYearIdx = year - 2024 + 1;
+    if (hantuBal > 0 && age <= 79) {
+      if (hantuYearIdx >= 3 && hantuYearIdx <= 10) {
+        const hantuLimitCalc = (hantuBal / Math.max(11 - hantuYearIdx, 1)) * 1.2;
+        hantuWithdraw = Math.min(hantuLimitCalc, hantuLimit, hantuBal);
+      } else if (hantuYearIdx > 10) {
+        hantuWithdraw = Math.min(hantuLimit, hantuBal);
+      }
+    }
+
+    // ─ 미래에셋·삼성 분담 ─
+    if (age <= 79) {
+      // 80세 이전: monthlyTarget * 12 만큼 IRP 합산으로 maximize
+      // 한투가 이미 분담했으므로 IRP에서는 (yearlyTarget) 추가 인출
+      let remaining = yearlyTarget;
+      if (year === a.samsungStartYear) {
+        // 삼성 개시 첫해 (10월~) → 미래에셋 우선, 삼성 3개월분 보조
+        miraeWithdraw = Math.min(remaining, miraeBal);
+        remaining -= miraeWithdraw;
+        samsungWithdraw = Math.min(samsungLimit * 0.27, samsungBal);
+        note = "⚡ 삼성 개시 (10월~)";
+      } else if (!samsungAvail) {
+        // 삼성 개시 전: 미래에셋 단독
+        miraeWithdraw = Math.min(remaining, miraeBal);
+        if (year === a.samsungStartYear - 1) note = "미래에셋 단독 최종연도";
+      } else {
+        // 삼성 개시 이후: 삼성을 10년 균등 소진 (전강후약 + 미래에셋 잔액 보존)
+        const samsungEvenTarget = a.samsungBalance / 10;
+        samsungWithdraw = Math.min(samsungEvenTarget, samsungLimit, samsungBal, remaining);
+        remaining -= samsungWithdraw;
+        // 미래에셋 우선 인출 (한도없음)
+        miraeWithdraw = Math.min(remaining, miraeBal);
+        remaining -= miraeWithdraw;
+        // 미래에셋 부족 → 삼성 한도 내 추가 인출
+        if (remaining > 0 && samsungBal - samsungWithdraw > 0) {
+          const extra = Math.min(remaining, samsungLimit - samsungWithdraw, samsungBal - samsungWithdraw);
+          samsungWithdraw += Math.max(0, extra);
+        }
+      }
+    } else {
+      // ★ 80세~100세 성장기: 月 phase4Monthly 고정 — 잔액 있는 계좌에서 차례로 인출
+      let need = yearlyTarget;
+      miraeWithdraw = Math.min(need, miraeBal);
+      need -= miraeWithdraw;
+      if (need > 0 && samsungBal > 0) {
+        samsungWithdraw = Math.min(need, samsungBal);
+        need -= samsungWithdraw;
+      }
+    }
+
+    // ─ 잔액 갱신 ─
+    miraeBal = Math.max(0, (miraeBal - miraeWithdraw) * (1 + yearReturn));
+    samsungBal = Math.max(0, (samsungBal - samsungWithdraw) * (1 + yearReturn));
+    hantuBal = Math.max(0, (hantuBal - hantuWithdraw) * (1 + yearReturn));
+
+    // ─ 합계 ─
+    const totalWithdraw = miraeWithdraw + samsungWithdraw + hantuWithdraw;
+    const monthlyIRP = totalWithdraw / 12;
+    const pensionMonthly = year >= a.pensionStartYear ? a.pensionAmt : 0;
+    const monthlyTotal = monthlyIRP + a.otherIncome + pensionMonthly;
+    cumulativeWithdraw += totalWithdraw;
+
+    // ─ 세금 ─
+    let tax = 0;
+    if (age <= 70) {
+      // 1·2단계: 퇴직소득세 60~70% 적용 (실효세율 6~7%)
+      tax += (miraeWithdraw + samsungWithdraw) * 0.06;
+    } else {
+      // 3·4단계: 연금소득세 3.3~4.4%
+      const rate = age < 80 ? 0.033 : 0.044;
+      tax += (miraeWithdraw + samsungWithdraw) * rate;
+    }
+    // 한투: 3.3% (~70) or 4.4% (80+)
+    const hantuRate = age < 70 ? 0.033 : (age < 80 ? 0.044 : 0.044);
+    tax += hantuWithdraw * hantuRate;
+    totalTaxEst += tax;
+
+    rows.push({
+      year, age, phase,
+      miraeWithdraw: Math.round(miraeWithdraw),
+      miraeBal: Math.round(miraeBal),
+      samsungWithdraw: Math.round(samsungWithdraw),
+      samsungBal: Math.round(samsungBal),
+      hantuWithdraw: Math.round(hantuWithdraw),
+      hantuBal: Math.round(hantuBal),
+      monthlyIRP: Math.round(monthlyIRP),
+      monthlyTotal: Math.round(monthlyTotal),
+      otherIncome: a.otherIncome,
+      pensionMonthly,
+      totalWithdraw: Math.round(totalWithdraw),
+      tax: Math.round(tax),
+      note,
+    });
+  }
+
+  state.simulation = {
+    rows,
+    cumulativeWithdraw: Math.round(cumulativeWithdraw),
+    totalTaxEst: Math.round(totalTaxEst),
+    finalMiraeBal: rows.length ? rows[rows.length - 1].miraeBal : 0,
+  };
+}
+
+function getPhase(age) {
+  if (age <= 64) return "황금기";
+  if (age <= 70) return "황금기+";
+  if (age <= 79) return "전환기";
+  return "성장기";
+}
+function getPhaseClass(phase) {
+  return { "황금기": "phase-golden", "황금기+": "phase-golden-plus", "전환기": "phase-transition", "성장기": "phase-growth" }[phase] || "";
+}
+
+/* ─────── Renderers ─────── */
+function fmt(n) { return Math.round(n).toLocaleString(); }
+function fmtBig(n) {
+  const v = Math.round(n);
+  if (Math.abs(v) >= 10000) return (v / 10000).toFixed(2) + "억";
+  return v.toLocaleString() + "만";
+}
+
+function renderHeader() {
+  const a = state.assumptions;
+  const total = a.miraeBalance + a.samsungBalance + a.hantuBalance;
+  const peak = Math.max(a.phase1Monthly, a.phase2Monthly);
+  document.getElementById("header-stats").textContent =
+    `총자산 ${fmtBig(total)}원 / 月 peak ${peak}→${a.phase4Monthly}만 / ${a.startAge}~${a.endAge}세`;
+  document.getElementById("ribbonTotal").textContent = fmtBig(total) + "원";
+  document.getElementById("ribbonMonthly").textContent = `${peak}(65세)→${a.phase4Monthly}만`;
+  if (state.simulation) {
+    document.getElementById("ribbon100").textContent = fmtBig(state.simulation.finalMiraeBal) + "원";
+  }
+  document.getElementById("status-sum").textContent =
+    "평생 누적 인출: " + (state.simulation ? fmtBig(state.simulation.cumulativeWithdraw) + "원" : "-");
+  document.getElementById("status-count").textContent =
+    `${a.startAge}~${a.endAge}세 / ${a.endAge - a.startAge + 1}년`;
+  document.getElementById("lastSyncTime").textContent =
+    "최종 갱신 " + new Date(state.updatedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function renderDashboard() {
+  const a = state.assumptions;
+  const s = state.simulation;
+  if (!s) return;
+  const total = a.miraeBalance + a.samsungBalance + a.hantuBalance;
+
+  // phase 카드 동적 갱신
+  const p1 = document.getElementById("phase-card-1"); if (p1) p1.textContent = a.phase1Monthly;
+  const p2 = document.getElementById("phase-card-2"); if (p2) p2.textContent = a.phase2Monthly;
+  const p3 = document.getElementById("phase-card-3"); if (p3) p3.textContent = `${a.phase3Monthly}→${a.phase4Monthly}`;
+  const p4 = document.getElementById("phase-card-4"); if (p4) p4.textContent = a.phase4Monthly;
+
+  document.getElementById("dash-total").textContent = fmtBig(total) + "원";
+  document.getElementById("dash-golden").textContent = (a.phase2Monthly + a.otherIncome + a.pensionAmt) + "만";
+  document.getElementById("dash-cumul").textContent = fmtBig(s.cumulativeWithdraw) + "원";
+  document.getElementById("dash-final").textContent = fmtBig(s.finalMiraeBal) + "원";
+  // 미래에셋 고갈 연령 찾기
+  const depleteAgeMirae = s.rows.find(r => r.miraeBal <= 0)?.age;
+  let metaText = `총 ${s.rows.length}년 시뮬레이션 · 세금 누적 약 ${fmtBig(s.totalTaxEst)}원`;
+  if (depleteAgeMirae) metaText += ` · ⚠ 미래에셋 ${depleteAgeMirae}세 고갈`;
+  document.getElementById("dash-meta").textContent = metaText;
+
+  drawCharts();
+}
+
+function renderLimits() {
+  const a = state.assumptions;
+  document.getElementById("samsung-balance-display").textContent = fmt(a.samsungBalance) + "만원";
+
+  // ① 미래에셋 — 한도 없음
+  const miraeRows = [];
+  for (let i = 0; i < 5; i++) {
+    const year = 2026 + i;
+    const age = 62 + i;
+    miraeRows.push(`<tr>
+      <td class="text-center">${year}</td><td class="text-center">${age}</td>
+      <td class="text-center">11년차 이상</td><td class="text-center text-green-700 font-bold">한도 없음</td>
+      <td class="text-center font-bold">무제한</td><td class="text-center">40% 감면 (11년차~)</td>
+      <td class="text-center">6.0%</td><td class="text-[11px]">황금기 핵심 인출</td>
+    </tr>`);
+  }
+  document.getElementById("mirae-limit-tbody").innerHTML = miraeRows.join("");
+
+  // ② 삼성 — 2027.10 개시
+  const samsungRows = [];
+  let bal = a.samsungBalance;
+  const r = a.returnRate / 100;
+  for (let yr = 1; yr <= 10; yr++) {
+    const year = 2026 + yr;
+    const age = 62 + yr;
+    const limit = yr >= 10 ? bal : (bal / (11 - yr)) * 1.2;
+    const taxCut = yr <= 3 ? "30%" : (yr <= 5 ? "30%" : "30%");
+    samsungRows.push(`<tr>
+      <td class="text-center">${year}</td><td class="text-center">${age}</td>
+      <td class="text-center">${yr}년차</td><td class="text-right font-mono">${fmt(bal)}</td>
+      <td class="text-center text-[11px]">잔액÷${11 - yr}×1.2</td>
+      <td class="text-right font-mono font-bold">${fmt(limit)}</td>
+      <td class="text-right font-mono">${fmt(limit / 12)}</td>
+      <td class="text-center">${taxCut} 감면</td><td class="text-center">7.0%</td>
+    </tr>`);
+    bal = Math.max(0, (bal - limit) * (1 + r));
+  }
+  document.getElementById("samsung-limit-tbody").innerHTML = samsungRows.join("");
+
+  // ③ 한투 — 2024.07 개시, 2026=3년차
+  const hantuRows = [];
+  bal = a.hantuBalance;
+  for (let i = 0; i < 15; i++) {
+    const year = 2026 + i;
+    const age = 62 + i;
+    const yr = 3 + i;
+    let limit = 0, rec = 0;
+    if (yr <= 10) {
+      limit = (bal / Math.max(11 - yr, 1)) * 1.2;
+      rec = Math.min(limit, a.hantuLimit, bal);
+    }
+    const taxRate = age < 70 ? "3.3%" : "4.4%";
+    hantuRows.push(`<tr>
+      <td class="text-center">${year}</td><td class="text-center">${age}</td>
+      <td class="text-center">${yr}년차</td><td class="text-right font-mono">${fmt(bal)}</td>
+      <td class="text-center text-[11px]">${yr <= 10 ? `잔액÷${11 - yr}×1.2` : "한도없음"}</td>
+      <td class="text-right font-mono">${fmt(limit)}</td>
+      <td class="text-right font-mono font-bold">${fmt(rec)}</td>
+      <td class="text-center">${taxRate}</td>
+      <td class="text-[11px] text-orange-700">⚠ 한도 ${fmt(limit)}만</td>
+    </tr>`);
+    bal = Math.max(0, (bal - rec) * (1 + r));
+  }
+  document.getElementById("hantu-limit-tbody").innerHTML = hantuRows.join("");
+}
+
+function renderCashflow() {
+  const a = state.assumptions;
+  document.getElementById("cf-mirae").textContent = fmt(a.miraeBalance) + "만원";
+  document.getElementById("cf-samsung").textContent = fmt(a.samsungBalance) + "만원";
+  document.getElementById("cf-hantu").textContent = fmt(a.hantuBalance) + "만원";
+  document.getElementById("cf-sum").textContent =
+    fmt(a.miraeBalance + a.samsungBalance + a.hantuBalance) + "만원";
+
+  // 4단계 인출 계획 표 (현재 가정값 기준)
+  const p3End = a.phase4Monthly;
+  const stages = [
+    { name: "1단계", years: "62~64세 (3년)", src: "미래에셋 이연퇴직소득", monthly: a.phase1Monthly, pension: 0, tax: "퇴직소득세×60% (40% 감면)", phase: "phase-golden", note: "미래에셋 단독 (삼성 개시 전)" },
+    { name: "2단계", years: "65~70세 (6년)", src: "미래에셋+삼성 이연퇴직소득", monthly: a.phase2Monthly, pension: a.pensionAmt, tax: "퇴직소득세×60~70%", phase: "phase-golden-plus", note: "2027.10~ 삼성 추가 / 황금기 절정" },
+    { name: "3단계", years: "71~79세 (9년)", src: "이연퇴직 + 납입금재원 (전강후약)", monthly: `${a.phase3Monthly}→${p3End}`, pension: a.pensionAmt, tax: "퇴직 + 연금소득세 3.3%", phase: "phase-transition", note: "점진 감소 / 한투·삼성 소진" },
+    { name: "4단계", years: "80~100세 (21년)", src: "미래에셋 단독 (성장기 운용)", monthly: a.phase4Monthly, pension: a.pensionAmt, tax: "연금소득세 4.4%", phase: "phase-growth", note: "고정 100만 / 잔액 운용·상속 재원" },
+  ];
+  document.getElementById("stage-tbody").innerHTML = stages.map(st => {
+    const monthVal = typeof st.monthly === "string" ? st.monthly : st.monthly;
+    const yearVal = typeof st.monthly === "number" ? st.monthly * 12 : (a.phase3Monthly + a.phase4Monthly) / 2 * 12;
+    const totalMonth = (typeof st.monthly === "number" ? st.monthly : a.phase3Monthly) + a.otherIncome + st.pension;
+    return `<tr class="${st.phase}">
+      <td class="font-bold">${st.name}</td><td>${st.years}</td><td class="text-[11px]">${st.src}</td>
+      <td class="text-right font-mono">${monthVal}</td>
+      <td class="text-right font-mono">${a.otherIncome}</td>
+      <td class="text-right font-mono">${st.pension}</td>
+      <td class="text-right font-mono font-bold">${fmt(totalMonth)}~</td>
+      <td class="text-right font-mono">${fmt(yearVal)}</td>
+      <td>${st.tax}</td><td>비부과</td><td class="text-[11px]">${st.note}</td>
+    </tr>`;
+  }).join("");
+
+  const rows = state.simulation.rows.map(r => `<tr class="${getPhaseClass(r.phase)}">
+    <td class="text-center">${r.year}</td>
+    <td class="text-center font-bold">${r.age}</td>
+    <td class="text-center text-[11px]">${r.phase}</td>
+    <td class="text-right font-mono">${fmt(r.miraeWithdraw)}</td>
+    <td class="text-right font-mono text-gray-600">${fmt(r.miraeBal)}</td>
+    <td class="text-right font-mono">${fmt(r.samsungWithdraw)}</td>
+    <td class="text-right font-mono text-gray-600">${fmt(r.samsungBal)}</td>
+    <td class="text-right font-mono">${fmt(r.hantuWithdraw)}</td>
+    <td class="text-right font-mono text-gray-600">${fmt(r.hantuBal)}</td>
+    <td class="text-right font-mono font-bold text-blue-700">${fmt(r.monthlyIRP)}</td>
+    <td class="text-right font-mono font-bold text-green-700">${fmt(r.monthlyTotal)}</td>
+    <td class="text-[11px]">${r.note || (r.age === a.pensionAge ? "국민연금 시작" : "")}</td>
+  </tr>`).join("");
+  document.getElementById("cashflow-tbody").innerHTML = rows;
+}
+
+function renderTax() {
+  const a = state.assumptions;
+  const s = state.simulation;
+  if (!s) return;
+
+  // 단계별 세금 시뮬
+  const stages = [
+    { name: "1단계", years: "62~64세", yearly: 8400, rate: 6.0, rateLabel: "퇴직소득세×60%" },
+    { name: "2단계", years: "65~70세", yearly: 8400, rate: 6.0, rateLabel: "퇴직소득세×60~70%" },
+    { name: "3단계", years: "71~79세", yearly: 1500, rate: 3.3, rateLabel: "연금소득세 3.3%" },
+    { name: "4단계", years: "80~100세", yearly: 1500, rate: 4.4, rateLabel: "연금소득세 4.4%" },
+  ];
+  document.getElementById("tax-sim-tbody").innerHTML = stages.map(st => {
+    const tax = Math.round(st.yearly * st.rate / 100);
+    const after = st.yearly - tax;
+    return `<tr>
+      <td class="font-bold">${st.name}</td>
+      <td>${st.years}</td>
+      <td class="text-right font-mono">${fmt(st.yearly)}만</td>
+      <td class="text-center">${st.rateLabel}</td>
+      <td class="text-right font-mono text-red-600">${fmt(tax)}만</td>
+      <td class="text-right font-mono font-bold text-green-700">${fmt(after)}만</td>
+      <td class="text-right font-mono">${Math.round(after / 12)}만</td>
+    </tr>`;
+  }).join("");
+
+  // 평생 누적
+  document.getElementById("tax-cumul-tbody").innerHTML = `
+    <tr><td class="font-bold">평생 누적 인출 (세전)</td><td class="text-right font-mono">${fmt(s.cumulativeWithdraw)}</td><td>62~${a.endAge}세 누적</td></tr>
+    <tr><td class="font-bold">평생 누적 세금</td><td class="text-right font-mono text-red-600">${fmt(s.totalTaxEst)}</td><td>실효세율 약 ${(s.totalTaxEst / s.cumulativeWithdraw * 100).toFixed(1)}%</td></tr>
+    <tr class="bg-blue-50 font-bold"><td>평생 누적 세후 수령</td><td class="text-right font-mono text-blue-900">${fmt(s.cumulativeWithdraw - s.totalTaxEst)}</td><td>실제 사용 가능 금액</td></tr>
+    <tr class="bg-green-50"><td class="font-bold">100세 잔액 (미래에셋, 상속재원)</td><td class="text-right font-mono text-green-700 font-bold">${fmt(s.finalMiraeBal)}</td><td>운용수익 누적 결과</td></tr>
+  `;
+}
+
+/* ─────── Charts ─────── */
+function drawCharts() {
+  const s = state.simulation;
+  if (!s) return;
+  const labels = s.rows.map(r => `${r.year}\n(${r.age}세)`);
+  const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 } } } } };
+
+  // ① 잔액 추이
+  if (charts.balance) charts.balance.destroy();
+  charts.balance = new Chart(document.getElementById("balanceChart"), {
+    type: "line", data: {
+      labels, datasets: [
+        { label: "미래에셋 IRP", data: s.rows.map(r => r.miraeBal), borderColor: "#10b981", backgroundColor: "rgba(16,185,129,0.1)", tension: 0.3 },
+        { label: "삼성증권 IRP", data: s.rows.map(r => r.samsungBal), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.1)", tension: 0.3 },
+        { label: "한국투자 개인연금", data: s.rows.map(r => r.hantuBal), borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.1)", tension: 0.3 },
+        { label: "3계좌 합계", data: s.rows.map(r => r.miraeBal + r.samsungBal + r.hantuBal), borderColor: "#1e3a8a", backgroundColor: "rgba(30,58,138,0.05)", borderWidth: 2.5, tension: 0.3 },
+      ]
+    }, options: { ...opts, scales: { y: { ticks: { callback: v => (v / 10000).toFixed(1) + "억" } } } }
+  });
+
+  // ② 연도별 인출 (stacked)
+  if (charts.withdraw) charts.withdraw.destroy();
+  charts.withdraw = new Chart(document.getElementById("withdrawChart"), {
+    type: "bar", data: {
+      labels, datasets: [
+        { label: "미래에셋", data: s.rows.map(r => r.miraeWithdraw), backgroundColor: "#10b981" },
+        { label: "삼성", data: s.rows.map(r => r.samsungWithdraw), backgroundColor: "#f59e0b" },
+        { label: "한투", data: s.rows.map(r => r.hantuWithdraw), backgroundColor: "#ef4444" },
+      ]
+    }, options: { ...opts, scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => (v / 10000).toFixed(1) + "억" } } } }
+  });
+
+  // ③ 월 현금흐름 (stacked)
+  if (charts.monthly) charts.monthly.destroy();
+  charts.monthly = new Chart(document.getElementById("monthlyChart"), {
+    type: "bar", data: {
+      labels, datasets: [
+        { label: "IRP 월수령", data: s.rows.map(r => r.monthlyIRP), backgroundColor: "#107c41" },
+        { label: "기타수입", data: s.rows.map(r => r.otherIncome), backgroundColor: "#6366f1" },
+        { label: "국민연금", data: s.rows.map(r => r.pensionMonthly), backgroundColor: "#a855f7" },
+      ]
+    }, options: { ...opts, scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => v + "만" } } } }
+  });
+
+  // ④ 포트폴리오 비중
+  if (charts.portfolio) charts.portfolio.destroy();
+  charts.portfolio = new Chart(document.getElementById("portfolioChart"), {
+    type: "doughnut", data: {
+      labels: ["TIGER 미국배당다우존스 40%", "KODEX 나스닥100 30%", "KODEX TDF2050 20%", "ACE 커버드콜 10%"],
+      datasets: [{ data: [40, 30, 20, 10], backgroundColor: ["#fb923c", "#3b82f6", "#10b981", "#a855f7"] }]
+    }, options: { ...opts, plugins: { ...opts.plugins, legend: { position: "right", labels: { font: { size: 10 } } } } }
+  });
+}
+
+/* ─────── Sheet tab switching ─────── */
+function switchSheet(sheetName) {
+  document.querySelectorAll(".sheet-tab").forEach(t => t.classList.toggle("active", t.dataset.sheet === sheetName));
+  document.querySelectorAll(".sheet-content").forEach(c => c.classList.toggle("active", c.id === `sheet-${sheetName}`));
+  if (sheetName === "dashboard") setTimeout(drawCharts, 50);
+}
+
+/* ─────── Assumptions modal ─────── */
+function openAssumptions() {
+  const a = state.assumptions;
+  document.getElementById("ai-mirae").value = a.miraeBalance;
+  document.getElementById("ai-samsung").value = a.samsungBalance;
+  document.getElementById("ai-hantu").value = a.hantuBalance;
+  document.getElementById("ai-startAge").value = a.startAge;
+  document.getElementById("ai-endAge").value = a.endAge;
+  document.getElementById("ai-returnRate").value = a.returnRate;
+  document.getElementById("ai-lateReturnRate").value = a.lateReturnRate;
+  document.getElementById("ai-phase1").value = a.phase1Monthly;
+  document.getElementById("ai-phase2").value = a.phase2Monthly;
+  document.getElementById("ai-phase3").value = a.phase3Monthly;
+  document.getElementById("ai-phase4").value = a.phase4Monthly;
+  document.getElementById("ai-masterMonthly").value = a.phase1Monthly;
+  const corr = document.getElementById("ai-correction-result");
+  if (corr) corr.classList.add("hidden");
+  document.getElementById("ai-pensionStartYear").value = a.pensionStartYear;
+  document.getElementById("ai-pensionAmt").value = a.pensionAmt;
+  document.getElementById("ai-otherIncome").value = a.otherIncome;
+  document.getElementById("ai-hantuLimit").value = a.hantuLimit;
+  document.getElementById("ai-retirementAge").value = a.retirementAge || "";
+  document.getElementById("ai-depleteAt100").checked = !!a.depleteAt100;
+  document.getElementById("assumptionsModal").classList.remove("hidden");
+  document.getElementById("assumptionsModal").classList.add("flex");
+}
+function closeAssumptions() {
+  document.getElementById("assumptionsModal").classList.add("hidden");
+  document.getElementById("assumptionsModal").classList.remove("flex");
+}
+function saveAssumptions() {
+  const a = state.assumptions;
+  a.miraeBalance = +document.getElementById("ai-mirae").value || 0;
+  a.samsungBalance = +document.getElementById("ai-samsung").value || 0;
+  a.hantuBalance = +document.getElementById("ai-hantu").value || 0;
+  a.startAge = +document.getElementById("ai-startAge").value || 62;
+  a.endAge = +document.getElementById("ai-endAge").value || 100;
+  a.returnRate = +document.getElementById("ai-returnRate").value || 8.5;
+  a.lateReturnRate = +document.getElementById("ai-lateReturnRate").value || 4.0;
+  a.phase1Monthly = +document.getElementById("ai-phase1").value || 700;
+  a.phase2Monthly = +document.getElementById("ai-phase2").value || 700;
+  a.phase3Monthly = +document.getElementById("ai-phase3").value || 500;
+  a.phase4Monthly = +document.getElementById("ai-phase4").value || 100;
+  a.pensionStartYear = +document.getElementById("ai-pensionStartYear").value || 2030;
+  a.pensionAmt = +document.getElementById("ai-pensionAmt").value || 160;
+  a.otherIncome = Math.max(0, +document.getElementById("ai-otherIncome").value || 0);
+  a.hantuLimit = +document.getElementById("ai-hantuLimit").value || 1500;
+  const retire = +document.getElementById("ai-retirementAge").value;
+  a.retirementAge = retire > 0 ? retire : null;
+  a.depleteAt100 = document.getElementById("ai-depleteAt100").checked;
+  saveState();
+  closeAssumptions();
+  recompute(true);
+  showToast("✅ 가정값 저장 & 시뮬레이션 재계산 완료");
+}
+function resetAssumptions() {
+  if (!confirm("기본값으로 초기화하시겠습니까?")) return;
+  state.assumptions = { ...DEFAULT_ASSUMPTIONS };
+  openAssumptions(); // refresh form
+}
+
+/* ─ 마스터값 입력 변경 시 phase 1/2/3/4 자동 연동 (65세 peak) ─ */
+function onMasterChange() {
+  const master = +document.getElementById("ai-masterMonthly").value || 0;
+  if (master <= 0) return;
+  document.getElementById("ai-phase1").value = 0;             // 62~64 인출 없음
+  document.getElementById("ai-phase2").value = master;        // 65~70 peak
+  document.getElementById("ai-phase3").value = Math.round(master * 0.6);  // 71~79 시작값
+  document.getElementById("ai-phase4").value = +document.getElementById("ai-phase4").value || 100;
+}
+
+/* ─ 月 IRP 마스터값으로 phase 자동 분배 (65세 peak 전강후약) ─ */
+function distributePhases() {
+  const master = +document.getElementById("ai-masterMonthly").value || 0;
+  if (master <= 0) { showToast("⚠ 마스터 목표값을 먼저 입력하세요"); return; }
+  // 65세 peak: 1단계=0, 2단계=master(peak), 3단계=master×0.6, 4단계=100
+  const p3 = Math.round(master * 0.6);
+  const p4 = 100;
+  document.getElementById("ai-phase1").value = 0;
+  document.getElementById("ai-phase2").value = master;
+  document.getElementById("ai-phase3").value = p3;
+  document.getElementById("ai-phase4").value = p4;
+  const el = document.getElementById("ai-correction-result");
+  el.classList.remove("hidden");
+  el.className = "text-[11px] bg-blue-50 border border-blue-300 p-2 rounded text-blue-800";
+  el.innerHTML = `✅ 비례 분배 완료 (65세 peak): <strong>1단계 0만 (인출없음) / 2단계 ${master}만 (peak) / 3단계 ${p3}만 / 4단계 ${p4}만</strong>`;
+}
+
+/* ─ 100세 자동 보정 — 현재 phase로 시뮬 후 자금 소진되면 비례 축소 ─ */
+function adjustForCentenarian() {
+  // 현재 폼 값을 읽어 임시 가정값 객체에 적용
+  const tempA = { ...state.assumptions };
+  tempA.miraeBalance = +document.getElementById("ai-mirae").value || 52000;
+  tempA.samsungBalance = +document.getElementById("ai-samsung").value || 15000;
+  tempA.hantuBalance = +document.getElementById("ai-hantu").value || 8000;
+  tempA.startAge = +document.getElementById("ai-startAge").value || 62;
+  tempA.endAge = +document.getElementById("ai-endAge").value || 100;
+  tempA.returnRate = +document.getElementById("ai-returnRate").value || 8.5;
+  tempA.lateReturnRate = +document.getElementById("ai-lateReturnRate").value || 4.0;
+  tempA.pensionStartYear = +document.getElementById("ai-pensionStartYear").value || 2030;
+  tempA.pensionAmt = +document.getElementById("ai-pensionAmt").value || 160;
+  tempA.otherIncome = +document.getElementById("ai-otherIncome").value || 700;
+  tempA.hantuLimit = +document.getElementById("ai-hantuLimit").value || 1500;
+  const retire = +document.getElementById("ai-retirementAge").value;
+  tempA.retirementAge = retire > 0 ? retire : null;
+  tempA.depleteAt100 = document.getElementById("ai-depleteAt100").checked;
+  const orig1 = +document.getElementById("ai-phase1").value || 700;
+  const orig2 = +document.getElementById("ai-phase2").value || 500;
+  const orig3 = +document.getElementById("ai-phase3").value || 300;
+  const orig4 = +document.getElementById("ai-phase4").value || 100;
+
+  // 이진 탐색: phase 1/2/3을 같은 scale로 축소하여 100세까지 자금 유지
+  const el = document.getElementById("ai-correction-result");
+  el.classList.remove("hidden");
+
+  const savedAssumptions = state.assumptions;
+  state.assumptions = { ...tempA };
+
+  // 먼저 현재값으로 시뮬 → 100세까지 도달하는지 확인
+  state.assumptions.phase1Monthly = orig1;
+  state.assumptions.phase2Monthly = orig2;
+  state.assumptions.phase3Monthly = orig3;
+  state.assumptions.phase4Monthly = orig4;
+  simulate();
+  const depleteAge0 = findDepleteAge(state.simulation);
+
+  if (!depleteAge0) {
+    state.assumptions = savedAssumptions;
+    el.className = "text-[11px] bg-green-50 border border-green-400 p-2 rounded text-green-800";
+    el.innerHTML = `✅ <strong>이미 100세까지 자금 유지됨.</strong> 현재 phase 값(${orig1}/${orig2}/${orig3}/${orig4})으로 시뮬해도 자금이 소진되지 않습니다. 보정 불필요.`;
+    return;
+  }
+
+  // 이진 탐색으로 최대 가능한 scale 찾기 (0.1 ~ 1.0)
+  let lo = 0.1, hi = 1.0, bestScale = 0.1;
+  for (let iter = 0; iter < 18; iter++) {
+    const mid = (lo + hi) / 2;
+    state.assumptions.phase1Monthly = Math.max(50, Math.round(orig1 * mid));
+    state.assumptions.phase2Monthly = Math.max(50, Math.round(orig2 * mid));
+    state.assumptions.phase3Monthly = Math.max(50, Math.round(orig3 * mid));
+    state.assumptions.phase4Monthly = orig4; // phase4는 고정
+    simulate();
+    const dep = findDepleteAge(state.simulation);
+    if (!dep) {
+      bestScale = mid;
+      lo = mid; // 더 늘려보기
+    } else {
+      hi = mid; // 줄여야 함
+    }
+  }
+
+  // 결과 적용
+  const newP1 = Math.max(50, Math.round(orig1 * bestScale));
+  const newP2 = Math.max(50, Math.round(orig2 * bestScale));
+  const newP3 = Math.max(50, Math.round(orig3 * bestScale));
+  document.getElementById("ai-phase1").value = newP1;
+  document.getElementById("ai-phase2").value = newP2;
+  document.getElementById("ai-phase3").value = newP3;
+  document.getElementById("ai-phase4").value = orig4;
+
+  state.assumptions = savedAssumptions;
+  el.className = "text-[11px] bg-amber-50 border border-amber-400 p-2 rounded text-amber-900";
+  el.innerHTML = `🔧 <strong>100세 보정 완료</strong> (원본 ${depleteAge0}세 소진 → 100세까지 유지)<br>
+    축소 비율: <strong>×${bestScale.toFixed(2)}</strong> · 결과: 1단계 ${newP1}만 / 2단계 ${newP2}만 / 3단계 ${newP3}만 / 4단계 ${orig4}만<br>
+    💾 [저장 & 재계산]을 눌러 적용하세요.`;
+}
+
+function findDepleteAge(sim) {
+  if (!sim || !sim.rows) return null;
+  for (const r of sim.rows) {
+    const total = r.miraeBal + r.samsungBal + r.hantuBal;
+    // monthlyIRP가 0이거나 매우 작으면 사실상 소진 (4단계 100/월 = 1200/년 미만)
+    if (total <= 0 && r.age < 100) return r.age;
+    // 80세 이후 인출 목표를 충족하지 못해 소진된 경우
+    if (r.age >= 80 && r.totalWithdraw < 600 && total <= 0) return r.age;
+  }
+  return null;
+}
+
+/* ─────── Settings (Gist sync) ─────── */
+function openSettings() {
+  document.getElementById("st-token").value = state.settings.token || "";
+  document.getElementById("st-gistId").value = state.settings.gistId || "";
+  document.getElementById("settingsModal").classList.remove("hidden");
+  document.getElementById("settingsModal").classList.add("flex");
+}
+function closeSettings() {
+  document.getElementById("settingsModal").classList.add("hidden");
+  document.getElementById("settingsModal").classList.remove("flex");
+}
+function saveSettings() {
+  state.settings.token = document.getElementById("st-token").value.trim();
+  state.settings.gistId = document.getElementById("st-gistId").value.trim();
+  saveState();
+  closeSettings();
+  showToast("✅ 설정 저장");
+  if (state.settings.token) syncGist(true);
+}
+
+/* ─────── Gist sync ─────── */
+async function syncGist(showMsg) {
+  if (!state.settings.token) { if (showMsg) showToast("⚠ GitHub 토큰을 설정에서 입력해 주세요"); return; }
+  const btn = document.getElementById("syncBtn");
+  document.getElementById("syncText").textContent = "동기화중...";
+  btn.disabled = true;
+  try {
+    const payload = { assumptions: state.assumptions, holdings: state.holdings, sells: state.sells, updatedAt: state.updatedAt };
+    const body = JSON.stringify({
+      description: "IRP 100세 현금흐름 마스터플래너 — 데이터 동기화",
+      public: false,
+      files: { "irp-planner-data.json": { content: JSON.stringify(payload, null, 2) } },
+    });
+    const headers = { "Authorization": `token ${state.settings.token}`, "Content-Type": "application/json" };
+    let url, method;
+    if (state.settings.gistId) {
+      url = `https://api.github.com/gists/${state.settings.gistId}`;
+      method = "PATCH";
+    } else {
+      url = "https://api.github.com/gists";
+      method = "POST";
+    }
+    // Pull first (last-write-wins)
+    if (state.settings.gistId) {
+      try {
+        const pull = await fetch(`https://api.github.com/gists/${state.settings.gistId}`, { headers });
+        if (pull.ok) {
+          const j = await pull.json();
+          const content = j.files?.["irp-planner-data.json"]?.content;
+          if (content) {
+            const remote = JSON.parse(content);
+            if (remote.updatedAt && new Date(remote.updatedAt) > new Date(state.updatedAt)) {
+              state.assumptions = { ...DEFAULT_ASSUMPTIONS, ...remote.assumptions };
+              if (Array.isArray(remote.holdings)) state.holdings = remote.holdings;
+              if (Array.isArray(remote.sells)) state.sells = remote.sells;
+              state.updatedAt = remote.updatedAt;
+              saveStateNoSync();
+              recompute(true);
+              if (showMsg) showToast("⬇ Gist에서 최신 데이터 가져옴");
+              btn.disabled = false;
+              document.getElementById("syncText").textContent = "동기화";
+              return;
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+    const res = await fetch(url, { method, headers, body });
+    if (!res.ok) throw new Error("status " + res.status);
+    const j = await res.json();
+    if (!state.settings.gistId && j.id) {
+      state.settings.gistId = j.id;
+      saveStateNoSync();
+    }
+    if (showMsg) showToast("✅ Gist 동기화 완료");
+  } catch (e) {
+    if (showMsg) showToast("❌ 동기화 실패: " + e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById("syncText").textContent = "동기화";
+  }
+}
+function saveStateNoSync() {
+  state.updatedAt = new Date().toISOString();
+  localStorage.setItem("irpPlannerState", JSON.stringify(state));
+}
+
+/* ─────── Sync code (cross-device) ─────── */
+function generateSyncCode() {
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify({
+    assumptions: state.assumptions,
+    holdings: state.holdings,
+    sells: state.sells,
+    settings: state.settings,
+    updatedAt: state.updatedAt,
+  }))));
+  const code = "irpSync:" + payload;
+  const txt = document.getElementById("st-syncCode");
+  txt.value = code;
+  txt.select();
+  try { navigator.clipboard.writeText(code); showToast("✅ 동기화 코드 복사 완료"); }
+  catch (e) { showToast("✅ 동기화 코드 생성 — 직접 복사하세요"); }
+}
+function importSyncCode() {
+  const v = document.getElementById("st-syncCode").value.trim();
+  const m = v.match(/^(irpSync|ledgerSync|realestateSync|wolsanSync|dkbiSync):(.+)$/);
+  if (!m) { showToast("❌ 잘못된 동기화 코드"); return; }
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(m[2]))));
+    if (data.assumptions) state.assumptions = { ...DEFAULT_ASSUMPTIONS, ...data.assumptions };
+    if (Array.isArray(data.holdings)) state.holdings = data.holdings;
+    if (Array.isArray(data.sells)) state.sells = data.sells;
+    if (data.settings) state.settings = { ...state.settings, ...data.settings };
+    saveState();
+    closeSettings();
+    recompute(true);
+    showToast("✅ 동기화 코드로 가져오기 완료");
+  } catch (e) { showToast("❌ 디코딩 실패: " + e.message); }
+}
+
+/* ─────── Export JSON ─────── */
+function exportData() {
+  const payload = { assumptions: state.assumptions, simulation: state.simulation, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `IRP_100세_시뮬레이션_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  showToast("💾 JSON 다운로드 완료");
+}
+
+/* ─────── Toast ─────── */
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.remove("hidden");
+  clearTimeout(window._toast);
+  window._toast = setTimeout(() => t.classList.add("hidden"), 2500);
+}
+
+/* ═══════════════════════════════════════════════════
+   매수 입력 (수동 / 엑셀 / 사진 OCR)
+   ═══════════════════════════════════════════════════ */
+function openHoldings() {
+  document.getElementById("holdingsModal").classList.remove("hidden");
+  document.getElementById("holdingsModal").classList.add("flex");
+  clearHoldingForm();
+  renderHoldingsList();
+  fillSellHoldingsDropdown();
+  renderSellList();
+}
+function closeHoldings() {
+  document.getElementById("holdingsModal").classList.add("hidden");
+  document.getElementById("holdingsModal").classList.remove("flex");
+  renderPortfolioHoldings();
+}
+function switchHoldingsTab(name) {
+  document.querySelectorAll(".hd-tab").forEach(t => {
+    const active = t.dataset.tab === name;
+    t.classList.toggle("bg-white", active);
+    t.classList.toggle("text-[#107c41]", active);
+    t.classList.toggle("border-b-2", active);
+    t.classList.toggle("border-b-[#107c41]", active);
+    t.classList.toggle("text-gray-600", !active);
+  });
+  document.querySelectorAll(".hd-tab-content").forEach(c => {
+    c.classList.toggle("hidden", c.id !== `hd-tab-${name}`);
+  });
+}
+function clearHoldingForm() {
+  ["hd-name", "hd-code", "hd-qty", "hd-price", "hd-amount"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("hd-editId").value = "";
+  document.getElementById("hd-date").value = new Date().toISOString().slice(0, 10);
+}
+function saveHolding() {
+  const name = document.getElementById("hd-name").value.trim();
+  if (!name) { showToast("⚠ 종목명을 입력하세요"); return; }
+  const item = {
+    id: document.getElementById("hd-editId").value || `h${Date.now()}`,
+    broker: document.getElementById("hd-broker").value,
+    name,
+    code: document.getElementById("hd-code").value.trim(),
+    type: document.getElementById("hd-type").value,
+    qty: +document.getElementById("hd-qty").value || 0,
+    price: +document.getElementById("hd-price").value || 0,
+    amount: +document.getElementById("hd-amount").value || 0,
+    date: document.getElementById("hd-date").value || new Date().toISOString().slice(0, 10),
+  };
+  if (!item.amount && item.qty && item.price) item.amount = Math.round(item.qty * item.price / 10000);
+  const existIdx = state.holdings.findIndex(h => h.id === item.id);
+  if (existIdx >= 0) state.holdings[existIdx] = item;
+  else state.holdings.push(item);
+  saveState();
+  clearHoldingForm();
+  renderHoldingsList();
+  showToast("✅ 저장 완료 (" + state.holdings.length + "건)");
+}
+function editHolding(id) {
+  const h = state.holdings.find(x => x.id === id); if (!h) return;
+  document.getElementById("hd-editId").value = h.id;
+  document.getElementById("hd-broker").value = h.broker;
+  document.getElementById("hd-name").value = h.name;
+  document.getElementById("hd-code").value = h.code;
+  document.getElementById("hd-type").value = h.type;
+  document.getElementById("hd-qty").value = h.qty;
+  document.getElementById("hd-price").value = h.price;
+  document.getElementById("hd-amount").value = h.amount;
+  document.getElementById("hd-date").value = h.date;
+  switchHoldingsTab("manual");
+}
+function deleteHolding(id) {
+  if (!confirm("이 종목을 삭제하시겠습니까?")) return;
+  state.holdings = state.holdings.filter(h => h.id !== id);
+  saveState();
+  renderHoldingsList();
+}
+function clearAllHoldings() {
+  if (!confirm(`전체 ${state.holdings.length}건 매수 종목을 모두 삭제하시겠습니까?`)) return;
+  state.holdings = [];
+  saveState();
+  renderHoldingsList();
+}
+function renderHoldingsList() {
+  document.getElementById("hd-count").textContent = state.holdings.length;
+  const tbody = document.getElementById("hd-list-tbody");
+  if (!state.holdings.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-gray-400 py-3">등록된 종목이 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.holdings.map(h => `<tr>
+    <td class="text-[11px]">${h.broker}</td>
+    <td class="font-bold">${h.name}</td>
+    <td class="font-mono text-[11px]">${h.code}</td>
+    <td class="text-[11px]">${h.type}</td>
+    <td class="text-right font-mono">${fmt(h.qty)}</td>
+    <td class="text-right font-mono">${fmt(h.amount)}</td>
+    <td class="text-[11px]">${h.date}</td>
+    <td class="text-center">
+      <button onclick="editHolding('${h.id}')" class="text-blue-600 hover:underline text-xs">수정</button> /
+      <button onclick="deleteHolding('${h.id}')" class="text-red-600 hover:underline text-xs">삭제</button>
+    </td>
+  </tr>`).join("");
+}
+
+/* ─ 엑셀 일괄 가져오기 ─ */
+function downloadTemplate() {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["증권사", "종목명", "종목코드", "자산구분", "수량", "매수단가", "매수금액(만원)", "매수일"],
+    ["미래에셋 IRP", "TIGER 미국배당다우존스", "458730", "배당ETF", 1000, 12000, 1200, "2026-01-15"],
+    ["삼성증권 IRP", "KODEX TDF2050액티브", "434060", "TDF", 500, 10000, 500, "2026-02-20"],
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "매수내역");
+  XLSX.writeFile(wb, "IRP_매수내역_템플릿.xlsx");
+}
+function importExcel(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      const header = rows[0].map(h => String(h).trim());
+      const findIdx = (...names) => header.findIndex(h => names.some(n => h.includes(n)));
+      const idxBroker = findIdx("증권사", "계좌");
+      const idxName = findIdx("종목명", "이름");
+      const idxCode = findIdx("코드", "티커");
+      const idxType = findIdx("구분", "자산");
+      const idxQty = findIdx("수량");
+      const idxPrice = findIdx("단가", "가격");
+      const idxAmt = findIdx("금액");
+      const idxDate = findIdx("일자", "매수일", "일");
+      let added = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r[idxName]) continue;
+        const item = {
+          id: `h${Date.now()}_${i}`,
+          broker: r[idxBroker] || "미래에셋 IRP",
+          name: String(r[idxName] || "").trim(),
+          code: String(r[idxCode] || "").trim(),
+          type: r[idxType] || "기타",
+          qty: +r[idxQty] || 0,
+          price: +r[idxPrice] || 0,
+          amount: +r[idxAmt] || 0,
+          date: typeof r[idxDate] === "number" ? new Date((r[idxDate] - 25569) * 86400000).toISOString().slice(0, 10) : (r[idxDate] || ""),
+        };
+        if (!item.amount && item.qty && item.price) item.amount = Math.round(item.qty * item.price / 10000);
+        state.holdings.push(item);
+        added++;
+      }
+      saveState();
+      renderHoldingsList();
+      document.getElementById("hd-excel-preview").innerHTML = `✅ <strong>${added}건</strong> 추가됨 (총 ${state.holdings.length}건)`;
+      showToast(`✅ 엑셀에서 ${added}건 가져오기 완료`);
+    } catch (err) {
+      document.getElementById("hd-excel-preview").innerHTML = `❌ 가져오기 실패: ${err.message}`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ─ 사진 OCR ─ */
+async function runOcr(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const prog = document.getElementById("hd-ocr-progress");
+  const pct = document.getElementById("hd-ocr-pct");
+  const preview = document.getElementById("hd-ocr-preview");
+  prog.classList.remove("hidden");
+  preview.innerHTML = `<img src="${URL.createObjectURL(file)}" class="max-w-full max-h-40 border border-gray-300" />`;
+  try {
+    const { data: { text } } = await Tesseract.recognize(file, "kor+eng", {
+      logger: m => {
+        if (m.status === "recognizing text") pct.textContent = Math.round(m.progress * 100) + "%";
+      }
+    });
+    document.getElementById("hd-ocr-text").value = text;
+    prog.classList.add("hidden");
+    showToast("✅ OCR 완료 — 텍스트 검토 후 [종목 자동 추출] 클릭");
+  } catch (err) {
+    prog.classList.add("hidden");
+    showToast("❌ OCR 실패: " + err.message);
+  }
+}
+function parseOcrText() {
+  const text = document.getElementById("hd-ocr-text").value;
+  if (!text.trim()) { showToast("⚠ OCR 텍스트가 비어있습니다"); return; }
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  let added = 0;
+  for (const line of lines) {
+    // 종목명(한글+영문) + 코드(6자리) + 수량 + 금액 패턴
+    const codeMatch = line.match(/(\d{6})/);
+    const numbers = line.match(/[\d,]+/g) || [];
+    const nameMatch = line.replace(/[\d,]+/g, "").trim();
+    if (nameMatch.length < 2 || nameMatch.length > 40) continue;
+    if (numbers.length < 1) continue;
+    const cleanNums = numbers.map(n => +n.replace(/,/g, "")).filter(n => n > 0);
+    if (!cleanNums.length) continue;
+    const amount = Math.max(...cleanNums);
+    const item = {
+      id: `h${Date.now()}_${added}`,
+      broker: "미래에셋 IRP",
+      name: nameMatch.slice(0, 40),
+      code: codeMatch ? codeMatch[1] : "",
+      type: nameMatch.includes("배당") ? "배당ETF" : nameMatch.includes("TDF") ? "TDF" : nameMatch.includes("나스닥") || nameMatch.includes("S&P") ? "성장ETF" : "기타",
+      qty: cleanNums.length >= 2 ? cleanNums[0] : 0,
+      price: 0,
+      amount: amount > 10000000 ? Math.round(amount / 10000) : amount,
+      date: new Date().toISOString().slice(0, 10),
+    };
+    state.holdings.push(item);
+    added++;
+  }
+  saveState();
+  renderHoldingsList();
+  showToast(`✅ OCR에서 ${added}건 추출 — 정확도 확인 후 수정 권장`);
+}
+
+/* ═══════════════════════════════════════════════════
+   매도 (ETF / 주식수 단위 매도 + 매도 이력)
+   ═══════════════════════════════════════════════════ */
+function fillSellHoldingsDropdown() {
+  const sel = document.getElementById("sl-holdingId");
+  sel.innerHTML = `<option value="">-- 보유 종목 선택 --</option>` + state.holdings.filter(h => h.qty > 0 || h.amount > 0).map(h =>
+    `<option value="${h.id}">${h.name} (${h.broker}) — ${fmt(h.qty)}주 / ${fmt(h.amount)}만</option>`
+  ).join("");
+  document.getElementById("sl-date").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("sl-current").classList.add("hidden");
+}
+function sellHoldingSelected() {
+  const id = document.getElementById("sl-holdingId").value;
+  const cur = document.getElementById("sl-current");
+  if (!id) { cur.classList.add("hidden"); return; }
+  const h = state.holdings.find(x => x.id === id); if (!h) return;
+  document.getElementById("sl-curQty").textContent = fmt(h.qty);
+  document.getElementById("sl-curAmt").textContent = fmt(h.amount);
+  document.getElementById("sl-curBroker").textContent = h.broker;
+  document.getElementById("sl-price").value = h.price || "";
+  cur.classList.remove("hidden");
+}
+function executeSell() {
+  const id = document.getElementById("sl-holdingId").value;
+  if (!id) { showToast("⚠ 매도 종목을 선택하세요"); return; }
+  const h = state.holdings.find(x => x.id === id); if (!h) return;
+  const qty = +document.getElementById("sl-qty").value || 0;
+  const price = +document.getElementById("sl-price").value || 0;
+  let amount = +document.getElementById("sl-amount").value || 0;
+  if (!amount && qty && price) amount = Math.round(qty * price / 10000);
+  if (qty <= 0 && amount <= 0) { showToast("⚠ 매도 수량 또는 금액을 입력하세요"); return; }
+  if (qty > h.qty) { showToast(`⚠ 보유 ${h.qty}주 초과 매도 불가`); return; }
+
+  const sell = {
+    id: `s${Date.now()}`,
+    holdingId: id,
+    name: h.name,
+    code: h.code,
+    broker: h.broker,
+    qty,
+    price,
+    amount,
+    reason: document.getElementById("sl-reason").value,
+    date: document.getElementById("sl-date").value || new Date().toISOString().slice(0, 10),
+  };
+  state.sells.push(sell);
+
+  // 매수 잔량 차감
+  h.qty = Math.max(0, h.qty - qty);
+  h.amount = Math.max(0, h.amount - amount);
+  if (h.qty === 0 && h.amount === 0) {
+    state.holdings = state.holdings.filter(x => x.id !== id);
+  }
+  saveState();
+  ["sl-qty", "sl-price", "sl-amount"].forEach(i => document.getElementById(i).value = "");
+  document.getElementById("sl-holdingId").value = "";
+  document.getElementById("sl-current").classList.add("hidden");
+  fillSellHoldingsDropdown();
+  renderSellList();
+  renderHoldingsList();
+  renderPortfolioHoldings();
+  showToast(`✅ ${h.name} ${fmt(qty)}주 / ${fmt(amount)}만 매도 처리 완료`);
+}
+function deleteSell(id) {
+  if (!confirm("이 매도 이력을 삭제하시겠습니까? (보유 종목 복원되지 않음)")) return;
+  state.sells = state.sells.filter(s => s.id !== id);
+  saveState();
+  renderSellList();
+}
+function clearAllSells() {
+  if (!confirm(`전체 ${state.sells.length}건 매도 이력을 모두 삭제하시겠습니까?`)) return;
+  state.sells = [];
+  saveState();
+  renderSellList();
+}
+function renderSellList() {
+  document.getElementById("sl-count").textContent = state.sells.length;
+  const tbody = document.getElementById("sl-list-tbody");
+  if (!state.sells.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-gray-400 py-3">매도 이력이 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.sells.slice().reverse().map(s => `<tr>
+    <td class="text-[11px]">${s.date}</td>
+    <td class="text-[11px]">${s.broker}</td>
+    <td class="font-bold">${s.name}</td>
+    <td class="text-right font-mono">${fmt(s.qty)}</td>
+    <td class="text-right font-mono">${fmt(s.price)}</td>
+    <td class="text-right font-mono font-bold text-red-700">${fmt(s.amount)}</td>
+    <td class="text-[11px]">${s.reason}</td>
+    <td class="text-center"><button onclick="deleteSell('${s.id}')" class="text-red-600 hover:underline text-xs">삭제</button></td>
+  </tr>`).join("");
+}
+
+/* ─ 배당 부족분 자동 계산 (포트폴리오 시트) ─ */
+function renderDividendGap() {
+  const el = document.getElementById("dividend-gap-summary");
+  if (!el) return;
+  const a = state.assumptions;
+  // 4종목 기본 연배당: 1,531만 (월평균 128만)
+  // 65세 peak 기준
+  const monthlyTarget = Math.max(a.phase1Monthly, a.phase2Monthly); // peak
+  const yearlyTarget = monthlyTarget * 12;
+  const annualDividend = 1531; // 기본 4종목 연 배당 가정 (또는 holdings 기반 계산 가능)
+  const gap = Math.max(0, yearlyTarget - annualDividend);
+  const monthlyDiv = Math.round(annualDividend / 12);
+  const monthlyGap = Math.round(gap / 12);
+  const goldYears = (a.retirementAge ? Math.min(3, a.endAge - a.retirementAge + 1) : 3);
+
+  el.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+      <div><div class="text-gray-600 font-bold">📈 月 IRP 인출 목표 (phase1 최대)</div><div class="font-mono text-base font-bold text-blue-700">${monthlyTarget}만</div><div class="text-[10px] text-gray-500">연 ${fmt(yearlyTarget)}만</div></div>
+      <div><div class="text-gray-600 font-bold">💰 月 배당 수령 (4종목 평균)</div><div class="font-mono text-base font-bold text-green-700">${monthlyDiv}만</div><div class="text-[10px] text-gray-500">연 ${fmt(annualDividend)}만</div></div>
+      <div><div class="text-gray-600 font-bold">⚠ 月 부족분 (매도 충당 필요)</div><div class="font-mono text-base font-bold text-red-700">${monthlyGap}만</div><div class="text-[10px] text-gray-500">연 ${fmt(gap)}만</div></div>
+      <div><div class="text-gray-600 font-bold">📉 매도 우선순위</div><div class="text-[11px] font-bold text-amber-800">① 금 ETF<br>② KODEX 나스닥100<br>③ TIGER 배당다우</div></div>
+    </div>
+    <div class="text-[11px] text-amber-800 mt-2">💡 月 ${monthlyGap}만(연 ${fmt(gap)}만)을 금 ETF 또는 차익실현 종목 매도로 충당. [📉 매도 처리] 버튼으로 기록 가능.</div>
+  `;
+}
+
+/* ─ 포트폴리오 시트에 매수 현황 표시 ─ */
+function renderPortfolioHoldings() {
+  renderDividendGap();
+  const tbody = document.getElementById("holdings-tbody");
+  const summary = document.getElementById("holdings-summary");
+  if (!tbody) return;
+  if (!state.holdings.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-gray-400 py-3">아직 등록된 매수 종목이 없습니다. 우상단 [📊 종목 매수입력] 버튼을 눌러주세요.</td></tr>`;
+    summary.textContent = "매수 종목 0건 / 총 매수금액 0만원";
+    return;
+  }
+  const total = state.holdings.reduce((s, h) => s + (h.amount || 0), 0);
+  summary.textContent = `매수 종목 ${state.holdings.length}건 / 총 매수금액 ${fmt(total)}만원 (${fmtBig(total)}원)`;
+  tbody.innerHTML = state.holdings.map(h => `<tr>
+    <td class="text-[11px]">${h.broker}</td>
+    <td class="font-bold">${h.name}</td>
+    <td class="font-mono text-[11px]">${h.code}</td>
+    <td class="text-[11px]">${h.type}</td>
+    <td class="text-right font-mono">${fmt(h.qty)}</td>
+    <td class="text-right font-mono">${fmt(h.price)}</td>
+    <td class="text-right font-mono font-bold">${fmt(h.amount)}</td>
+    <td class="text-[11px]">${h.date}</td>
+    <td class="text-center text-[11px]">
+      <button onclick="editHolding('${h.id}');openHoldings()" class="text-blue-600 hover:underline">수정</button> /
+      <button onclick="deleteHolding('${h.id}');renderPortfolioHoldings()" class="text-red-600 hover:underline">삭제</button>
+    </td>
+  </tr>`).join("");
+}
+
+/* ─────── Recompute ─────── */
+function recompute(animate) {
+  simulate();
+  renderHeader();
+  renderDashboard();
+  renderLimits();
+  renderCashflow();
+  renderTax();
+  renderPortfolioHoldings();
+  if (animate) {
+    document.querySelectorAll(".stat-card").forEach(c => {
+      c.classList.add("flash-update");
+      setTimeout(() => c.classList.remove("flash-update"), 1500);
+    });
+  }
+}
+
+/* ─ Gist Pull-only (폴링용) ─ */
+async function syncGistPull() {
+  if (!state.settings.token || !state.settings.gistId) return;
+  try {
+    const headers = { "Authorization": `token ${state.settings.token}` };
+    const res = await fetch(`https://api.github.com/gists/${state.settings.gistId}`, { headers });
+    if (!res.ok) return;
+    const j = await res.json();
+    const content = j.files?.["irp-planner-data.json"]?.content;
+    if (!content) return;
+    const remote = JSON.parse(content);
+    if (remote.updatedAt && new Date(remote.updatedAt) > new Date(state.updatedAt)) {
+      state.assumptions = { ...DEFAULT_ASSUMPTIONS, ...remote.assumptions };
+      if (Array.isArray(remote.holdings)) state.holdings = remote.holdings;
+      if (Array.isArray(remote.sells)) state.sells = remote.sells;
+      state.updatedAt = remote.updatedAt;
+      saveStateNoSync();
+      recompute(true);
+      showToast("⬇ 다른 기기 변경사항 자동 반영");
+    }
+  } catch (e) { /* silent */ }
+}
+
+/* ─ beforeunload: 마지막 저장 보장 (sendBeacon) ─ */
+function flushBeforeUnload() {
+  if (!state.settings.token || !state.settings.gistId) return;
+  // Gist PATCH via fetch keepalive (sendBeacon은 POST만 지원)
+  try {
+    const payload = JSON.stringify({
+      description: "IRP 100세 마스터플래너 — 데이터 동기화",
+      files: { "irp-planner-data.json": { content: JSON.stringify({ assumptions: state.assumptions, holdings: state.holdings, sells: state.sells, updatedAt: state.updatedAt }, null, 2) } },
+    });
+    fetch(`https://api.github.com/gists/${state.settings.gistId}`, {
+      method: "PATCH",
+      headers: { "Authorization": `token ${state.settings.token}`, "Content-Type": "application/json" },
+      body: payload,
+      keepalive: true,
+    });
+  } catch (e) { /* ignore */ }
+}
+
+/* ─────── Init ─────── */
+function init() {
+  loadState();
+  // Sheet tab click
+  document.querySelectorAll(".sheet-tab").forEach(t => t.addEventListener("click", () => switchSheet(t.dataset.sheet)));
+  // Modal background click
+  document.getElementById("assumptionsModal").addEventListener("click", e => { if (e.target.id === "assumptionsModal") closeAssumptions(); });
+  document.getElementById("settingsModal").addEventListener("click", e => { if (e.target.id === "settingsModal") closeSettings(); });
+  // Initial compute
+  recompute(false);
+  // Pull from gist on load
+  if (state.settings.token && state.settings.gistId) {
+    setTimeout(() => syncGistPull(), 800);
+  }
+  // Focus pull (탭 전환·앱 복귀 시)
+  window.addEventListener("focus", () => syncGistPull());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") syncGistPull();
+  });
+  // 30초 폴링 (다른 기기 변경사항 자동 가져오기)
+  setInterval(() => syncGistPull(), 30000);
+  // beforeunload: 마지막 변경 강제 저장 (PC ↔ 모바일 일관성)
+  window.addEventListener("beforeunload", flushBeforeUnload);
+  window.addEventListener("pagehide", flushBeforeUnload);
+}
+init();
+</script>
+</body>
+</html>
